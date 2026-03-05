@@ -16,10 +16,10 @@ export class DateQueryModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
 
-        contentEl.createEl('h2', { text: 'What was I reading' });
+        contentEl.createEl('h2', { text: 'What was I reading.' });
 
         new Setting(contentEl)
-            .setName('Select date')
+            .setName('Select date:')
             .setDesc('Find books active on this day.')
             .addText(text => text
                 .setPlaceholder('Date')
