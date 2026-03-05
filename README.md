@@ -20,9 +20,41 @@ A native, lightweight book tracking plugin for Obsidian. Think Goodreads, but yo
 - **Custom Sidebar View**: See your entire library grouped by shelf in a dedicated sidebar tab.
 - **Unshelved Grouping**: Automatically identifies books that haven't been organized yet.
 
-### 📊 Reading Statistics
-- Track your library's health with a dedicated **Stats View**.
-- Monitor total books, total pages read, and books currently in progress.
+### 📊 Interactive Reading Statistics
+- **Drill-Down & Search**: Click any stat card to see the exact list of books contributing to it, with a built-in search bar for quick filtering.
+- **Sorted Highlights**: View your "Total Pages Read" sorted by book length to see your biggest achievements.
+- **Performance Optimized**: Handles large libraries smoothly by limiting initial lists to 50 items with a "Show all" option.
+- **Deep Metrics**: Tracks "Unique Pages Read" alongside total cumulative pages (including re-reads).
+
+### 💬 Quote Integration & Tagging
+- **Quick Add**: Captures quotes, optional page numbers, and **tags** directly into the book note.
+- **Smart Referencing**: Generates book-contextual block IDs (e.g., `^quote-foundation-123`) so you can embed just the quote text elsewhere.
+- **Tag Discovery**: Use the `librarian` code block to aggregate quotes by tag:
+  ```librarian
+  tag: #philosophy
+  limit: 5
+  hideHeader: true
+  ```
+- **Modifier Support**: 
+    - `hideHeader: true`: Hide the block's title.
+    - `limit: X`: Restrict the number of items displayed.
+
+### ⚙️ Full Customization
+- **Custom Templates**: Edit the entire skeleton of new book notes in settings.
+- **Property Controls**: Opt-in or out of core metadata fields (ISBN, Rating, etc.) or add your own custom YAML properties.
+- **UI Toggles**: Turn off ribbon icons or header action buttons for a cleaner interface.
+
+### 🕰️ Historical Queries
+- **"What was I reading?" Command**: Query your vault to see which books were active on any specific date.
+- Perfect for answering "What was I reading last year?" using your logged `readHistory`.
+
+### 📝 Dynamic Code Blocks (NEW!)
+- **`librarian` Block**: Embed dynamic reading lists into any note.
+- **Example**: 
+  ```librarian
+  date: 2024-03-05
+  ```
+- **Template Ready**: Perfect for Daily Note templates to automatically surface your reading history.
 
 ### 🕰️ Re-read History
 - Automatically logs every reading session (start and end dates) in the note's frontmatter.

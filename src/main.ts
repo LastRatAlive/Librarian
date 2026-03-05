@@ -4,12 +4,16 @@ import { BookSearchModal } from './BookSearchModal';
 import { ShelfView, SHELF_VIEW_TYPE } from './ShelfView';
 import { StatsView, STATS_VIEW_TYPE } from './StatsView';
 import { ShelfSelectionModal } from './ShelfSelectionModal';
+import { DateQueryModal } from './DateQueryModal';
+import { getBooksActiveOnDate } from './BookUtils';
+import { QuoteModal } from './QuoteModal';
 
 export default class LibrarianPlugin extends Plugin {
 	settings: LibrarianSettings;
 
 	async onload() {
 		console.log('Loading Librarian plugin');
+		await this.loadSettings();
 
 		this.registerView(
 			SHELF_VIEW_TYPE,
@@ -44,12 +48,66 @@ export default class LibrarianPlugin extends Plugin {
 		});
 
 		// Add Ribbon Icons
-		this.addRibbonIcon('library', 'Open Bookshelves', () => {
-			this.activateShelfView();
-		});
+		if (this.settings.showShelfRibbon) {
+			this.addRibbonIcon('library', 'Open Bookshelves', () => {
+				this.activateShelfView();
+			});
+		}
 
-		this.addRibbonIcon('bar-chart', 'Open Reading Stats', () => {
-			this.activateStatsView();
+		if (this.settings.showStatsRibbon) {
+			this.addRibbonIcon('bar-chart', 'Open Reading Stats', () => {
+				this.activateStatsView();
+			});
+		}
+
+		// Register Code Block Processor
+		this.registerMarkdownCodeBlockProcessor("librarian", (source, el, ctx) => {
+			const rows = source.split("\n").filter((row) => row.length > 0);
+			const options: any = {};
+
+			for (const row of rows) {
+				const [key, ...valueParts] = row.split(":");
+				if (key && valueParts.length > 0) {
+					options[key.trim()] = valueParts.join(":").trim();
+				}
+			}
+
+			if (options.tag) {
+				this.renderTaggedQuotes(el, options.tag, options);
+				return;
+			}
+
+			let dateStr = options.date || "";
+			if (!dateStr || dateStr === 'today') {
+				dateStr = new Date().toISOString().split('T')[0] ?? "";
+			}
+
+			const books = getBooksActiveOnDate(this.app, dateStr);
+			const container = el.createDiv({ cls: 'librarian-block-container' });
+
+			if (options.hideHeader !== 'true') {
+				container.createEl('h4', { text: `Reading List for ${dateStr}`, cls: 'librarian-block-title' });
+			}
+
+			if (books.length === 0) {
+				container.createEl('p', { text: `No books active on ${dateStr}`, cls: 'librarian-block-empty' });
+			} else {
+				const ul = container.createEl('ul', { cls: 'librarian-block-list' });
+
+				let booksToDisplay = books;
+				if (options.limit) {
+					const limit = parseInt(options.limit);
+					if (!isNaN(limit)) booksToDisplay = books.slice(0, limit);
+				}
+
+				for (const file of booksToDisplay) {
+					const li = ul.createEl('li');
+					const link = li.createEl('a', { text: file.basename, cls: 'internal-link' });
+					link.onclick = (e) => {
+						this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(file);
+					};
+				}
+			}
 		});
 
 		this.addCommand({
@@ -68,8 +126,7 @@ export default class LibrarianPlugin extends Plugin {
 			}
 		});
 
-		// Load settings and add settings tab
-		await this.loadSettings();
+		// Add settings tab
 		this.addSettingTab(new LibrarianSettingTab(this.app, this));
 
 		// Search and Add Book Command
@@ -78,6 +135,14 @@ export default class LibrarianPlugin extends Plugin {
 			name: 'Add Book (Search Open Library)',
 			callback: () => {
 				new BookSearchModal(this.app, this).open();
+			}
+		});
+
+		this.addCommand({
+			id: 'librarian-query-date',
+			name: 'What was I reading? (Search by Date)',
+			callback: () => {
+				new DateQueryModal(this.app, this).open();
 			}
 		});
 
@@ -134,6 +199,7 @@ export default class LibrarianPlugin extends Plugin {
 	}
 
 	private injectButtonsIntoContainer(container: Element, file: TFile, frontmatter: any) {
+		if (!this.settings.showNoteButtons) return;
 		// Create our button container in the header
 		const buttonContainer = container.createEl('div', { cls: 'librarian-button-container' });
 		buttonContainer.style.display = 'flex';
@@ -157,6 +223,77 @@ export default class LibrarianPlugin extends Plugin {
 		// Shelf Management Button
 		const shelfBtn = buttonContainer.createEl('button', { text: 'Shelf +' });
 		shelfBtn.onclick = () => new ShelfSelectionModal(this.app, this, file).open();
+
+		// Add Quote Button
+		const quoteBtn = buttonContainer.createEl('button', { text: '💬 Add Quote' });
+		quoteBtn.onclick = () => new QuoteModal(this.app, this, file).open();
+	}
+
+	private async renderTaggedQuotes(el: HTMLElement, tag: string, options: any = {}) {
+		const container = el.createDiv({ cls: 'librarian-block-container' });
+
+		if (options.hideHeader !== 'true') {
+			container.createEl('h4', { text: `Quotes tagged with ${tag}`, cls: 'librarian-block-title' });
+		}
+
+		const allFiles = this.app.vault.getMarkdownFiles();
+		const matches: { quote: string, file: TFile, blockId: string }[] = [];
+
+		for (const file of allFiles) {
+			const cache = this.app.metadataCache.getFileCache(file);
+			if (cache?.frontmatter?.['type'] !== 'book') continue;
+
+			const content = await this.app.vault.read(file);
+			const lines = content.split('\n');
+
+			for (const line of lines) {
+				if (line.includes(tag) && line.includes('^quote-')) {
+					// Found a tagged quote line
+					const quoteMatch = line.match(/^>\s*"(.*)"\s*.*?\^quote-(.*)$/);
+					if (quoteMatch && quoteMatch[1] && quoteMatch[2]) {
+						matches.push({
+							quote: quoteMatch[1],
+							file: file,
+							blockId: `quote-${quoteMatch[2]}`
+						});
+					} else {
+						// Fallback if regex is too strict
+						const parts = line.split('^quote-');
+						const cleanQuote = parts[0]?.replace(/^>\s*/, '').trim() || "";
+						const blockIdPart = parts[1]?.trim() || "";
+						if (cleanQuote && blockIdPart) {
+							matches.push({ quote: cleanQuote, file: file, blockId: `quote-${blockIdPart}` });
+						}
+					}
+				}
+			}
+		}
+
+		if (matches.length === 0) {
+			container.createEl('p', { text: `No quotes found with tag ${tag}`, cls: 'librarian-block-empty' });
+		} else {
+			let displayedMatches = matches;
+			if (options.limit) {
+				const limit = parseInt(options.limit);
+				if (!isNaN(limit)) displayedMatches = matches.slice(0, limit);
+			}
+
+			for (const match of displayedMatches) {
+				const quoteEl = container.createEl('blockquote', { cls: 'librarian-block-quote' });
+				quoteEl.createEl('p', { text: match.quote });
+
+				const sourceEl = container.createEl('div', { cls: 'librarian-quote-source' });
+				sourceEl.style.textAlign = 'right';
+				sourceEl.style.fontSize = '0.8em';
+				sourceEl.style.marginTop = '-10px';
+				sourceEl.style.marginBottom = '20px';
+
+				const link = sourceEl.createEl('a', { text: `— ${match.file.basename}`, cls: 'internal-link' });
+				link.onclick = (e) => {
+					this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(match.file);
+				};
+			}
+		}
 	}
 
 	private runCommand(checking: boolean, action: 'start' | 'finish' | 'dnf'): boolean {

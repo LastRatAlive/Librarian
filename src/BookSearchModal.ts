@@ -1,5 +1,6 @@
 import { App, Notice, SuggestModal, TFile, requestUrl } from 'obsidian';
 import LibrarianPlugin from './main';
+import { DEFAULT_SETTINGS } from './settings';
 
 interface BookSearchResult {
     key: string;
@@ -69,45 +70,68 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         const author = (book.author_name && book.author_name.length > 0) ? book.author_name[0] || '' : '';
         const year = book.first_publish_year ? `${book.first_publish_year}` : '';
         const cover = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : '';
-        const isbn = book.isbn ? book.isbn[0] : '';
+        const isbn = (book.isbn && book.isbn.length > 0) ? book.isbn[0] || '' : '';
         const pages = book.number_of_pages_median || 0;
-        const dateAdded = new Date().toISOString().split('T')[0];
+        const dateAdded = new Date().toISOString().split('T')[0] ?? "";
 
         // Clean up title for filename
         const safeTitle = book.title.replace(/[\\/:*?"<>|]/g, '');
 
-        const frontmatter = `---
-type: book
-title: "${book.title.replace(/"/g, '\\"')}"
-englishTitle: "${book.title.replace(/"/g, '\\"')}"
-year: "${year}"
-dataSource: OpenLibrary
-id: "${book.key.replace('/works/', '')}"
-author: "${author.replace(/"/g, '\\"')}"
-pages: ${pages}
-image: "${cover}"
-isbn: "${isbn}"
-tags: mediaDB/book
-shelf: []
-dateRead: ""
-dateAdded: ${dateAdded}
-readCount: 0
-currentlyReading: false
-myRating: 0
----
-# ${safeTitle} - ${author}
+        // Generate dynamic frontmatter and body
+        const enabledProps = this.plugin.settings.enabledProperties;
+        let fmLines: string[] = ["---"];
 
-${cover ? `![](${cover})` : ''}
+        const addFM = (key: string, value: any) => {
+            if (enabledProps[key]) {
+                if (typeof value === 'string') {
+                    fmLines.push(`${key}: "${value.replace(/"/g, '\\"')}"`);
+                } else {
+                    fmLines.push(`${key}: ${value}`);
+                }
+            }
+        };
 
-## Summary
-Write your thoughts here.
+        addFM('type', 'book');
+        addFM('title', book.title);
+        addFM('englishTitle', book.title);
+        addFM('year', year);
+        addFM('dataSource', 'OpenLibrary');
+        addFM('id', book.key.replace('/works/', ''));
+        addFM('author', author);
+        addFM('pages', pages);
+        addFM('image', cover);
+        addFM('isbn', isbn);
+        addFM('tags', 'mediaDB/book');
+        addFM('dateAdded', dateAdded);
+        addFM('readCount', 0);
+        addFM('currentlyReading', false);
+        addFM('myRating', 0);
+        addFM('shelf', '[]');
 
-## Quotes
-> Add quotes here.
+        if (this.plugin.settings.additionalProperties && this.plugin.settings.additionalProperties.trim()) {
+            fmLines.push(this.plugin.settings.additionalProperties.trim());
+        }
+        fmLines.push("---");
+        const generatedFM = fmLines.join("\n");
 
-## Notes
--
-`;
+        let body = this.plugin.settings.bookTemplate || DEFAULT_SETTINGS.bookTemplate;
+        const placeholders: { [key: string]: string } = {
+            '{{title}}': book.title,
+            '{{author}}': author,
+            '{{pages}}': pages.toString(),
+            '{{year}}': year,
+            '{{cover}}': cover,
+            '{{cover_image}}': cover ? `![](${cover})` : '',
+            '{{isbn}}': isbn,
+            '{{id}}': book.key.replace('/works/', ''),
+            '{{dateAdded}}': dateAdded
+        };
+
+        for (const [key, value] of Object.entries(placeholders)) {
+            body = body.split(key).join(value);
+        }
+
+        const finalContent = body.trim().startsWith("---") ? body : `${generatedFM}\n${body}`;
 
         // Normalize folder path (remove leading/trailing slashes)
         let folderPath = this.plugin.settings.defaultBookFolder || '';
@@ -139,7 +163,7 @@ Write your thoughts here.
                 }
             }
 
-            const file = await this.app.vault.create(fullPath, frontmatter);
+            const file = await this.app.vault.create(fullPath, finalContent);
 
             // Open the newly created note
             const leaf = this.app.workspace.getLeaf(false);
