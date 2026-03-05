@@ -4,7 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Book tracking native to your vault. Like Goodreads, but in Obsidian.",
-	"author": "Keegan",
+	"author": "LastRatAlive",
 	"authorUrl": "",
 	"isDesktopOnly": false
 }
