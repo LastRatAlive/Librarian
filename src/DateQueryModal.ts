@@ -16,7 +16,7 @@ export class DateQueryModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
 
-        contentEl.createEl('h2', { text: 'What was I reading' });
+        contentEl.createEl('h2', { text: 'What was being read' });
 
 
         new Setting(contentEl)
