@@ -111,7 +111,7 @@ export default class LibrarianPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'librarian-open-shelves',
+			id: 'open-shelves',
 			name: 'Open Bookshelves',
 			callback: () => {
 				this.activateShelfView();
@@ -119,7 +119,7 @@ export default class LibrarianPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'librarian-open-stats',
+			id: 'open-stats',
 			name: 'Open Reading Stats',
 			callback: () => {
 				this.activateStatsView();
@@ -131,7 +131,7 @@ export default class LibrarianPlugin extends Plugin {
 
 		// Search and Add Book Command
 		this.addCommand({
-			id: 'librarian-add-book',
+			id: 'add-book',
 			name: 'Add Book (Search Open Library)',
 			callback: () => {
 				new BookSearchModal(this.app, this).open();
@@ -139,7 +139,7 @@ export default class LibrarianPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'librarian-query-date',
+			id: 'query-date',
 			name: 'What was I reading? (Search by Date)',
 			callback: () => {
 				new DateQueryModal(this.app, this).open();
@@ -148,19 +148,19 @@ export default class LibrarianPlugin extends Plugin {
 
 		// Fallback commands for users who prefer Command Palette
 		this.addCommand({
-			id: 'librarian-start-reading',
+			id: 'start-reading',
 			name: 'Start Reading (Update Frontmatter)',
 			checkCallback: (checking: boolean) => this.runCommand(checking, 'start')
 		});
 
 		this.addCommand({
-			id: 'librarian-finish-reading',
+			id: 'finish-reading',
 			name: 'Finish Reading (Update Frontmatter)',
 			checkCallback: (checking: boolean) => this.runCommand(checking, 'finish')
 		});
 
 		this.addCommand({
-			id: 'librarian-dnf',
+			id: 'dnf',
 			name: 'Didn\'t Finish Reading (Update Frontmatter)',
 			checkCallback: (checking: boolean) => this.runCommand(checking, 'dnf')
 		});
