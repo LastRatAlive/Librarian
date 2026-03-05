@@ -1,4 +1,4 @@
-import { App, MarkdownView, Plugin, TFile, Notice, WorkspaceLeaf } from 'obsidian';
+import { App, MarkdownView, Plugin, TFile, Notice, WorkspaceLeaf, Platform } from 'obsidian';
 import { LibrarianSettings, DEFAULT_SETTINGS, LibrarianSettingTab } from './settings';
 import { BookSearchModal } from './BookSearchModal';
 import { ShelfView, SHELF_VIEW_TYPE } from './ShelfView';
@@ -203,29 +203,44 @@ export default class LibrarianPlugin extends Plugin {
 		// Create our button container in the header
 		const buttonContainer = container.createEl('div', { cls: 'librarian-button-container' });
 		buttonContainer.style.display = 'flex';
-		buttonContainer.style.gap = '8px';
+		buttonContainer.style.gap = Platform.isMobile ? '4px' : '8px';
 		buttonContainer.style.alignItems = 'center';
-		buttonContainer.style.padding = '0 10px';
+		buttonContainer.style.padding = Platform.isMobile ? '0 5px' : '0 10px';
 
 		const currentlyReading = frontmatter['currentlyReading'] === true || frontmatter['currentlyReading'] === 'true';
 
 		if (!currentlyReading) {
-			const startBtn = buttonContainer.createEl('button', { text: '▶ Start Reading' });
+			const startBtn = buttonContainer.createEl('button', {
+				text: Platform.isMobile ? '▶' : '▶ Start Reading',
+				title: 'Start Reading'
+			});
 			startBtn.onclick = () => this.updateReadingStatus(file, 'start');
 		} else {
-			const finishBtn = buttonContainer.createEl('button', { text: '✅ Finished' });
+			const finishBtn = buttonContainer.createEl('button', {
+				text: Platform.isMobile ? '✅' : '✅ Finished',
+				title: 'Mark as Finished'
+			});
 			finishBtn.onclick = () => this.updateReadingStatus(file, 'finish');
 
-			const dnfBtn = buttonContainer.createEl('button', { text: '❌ Didn\'t Finish' });
+			const dnfBtn = buttonContainer.createEl('button', {
+				text: Platform.isMobile ? '❌' : '❌ Didn\'t Finish',
+				title: 'Didn\'t Finish'
+			});
 			dnfBtn.onclick = () => this.updateReadingStatus(file, 'dnf');
 		}
 
 		// Shelf Management Button
-		const shelfBtn = buttonContainer.createEl('button', { text: 'Shelf +' });
+		const shelfBtn = buttonContainer.createEl('button', {
+			text: Platform.isMobile ? '+ 📚' : 'Shelf +',
+			title: 'Manage Shelves'
+		});
 		shelfBtn.onclick = () => new ShelfSelectionModal(this.app, this, file).open();
 
 		// Add Quote Button
-		const quoteBtn = buttonContainer.createEl('button', { text: '💬 Add Quote' });
+		const quoteBtn = buttonContainer.createEl('button', {
+			text: Platform.isMobile ? '💬' : '💬 Add Quote',
+			title: 'Add Quote'
+		});
 		quoteBtn.onclick = () => new QuoteModal(this.app, this, file).open();
 	}
 
