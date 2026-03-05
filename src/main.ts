@@ -198,7 +198,7 @@ export default class LibrarianPlugin extends Plugin {
 		}
 	}
 
-	private injectButtonsIntoContainer(container: Element, file: TFile, frontmatter: any) {
+	private injectButtonsIntoContainer(container: Element, file: TFile, frontmatter: Record<string, any>) {
 		if (!this.settings.showNoteButtons) return;
 		// Create our button container in the header
 		const buttonContainer = container.createEl('div', { cls: 'librarian-button-container' });
@@ -244,7 +244,7 @@ export default class LibrarianPlugin extends Plugin {
 		quoteBtn.onclick = () => new QuoteModal(this.app, this, file).open();
 	}
 
-	private async renderTaggedQuotes(el: HTMLElement, tag: string, options: any = {}) {
+	private async renderTaggedQuotes(el: HTMLElement, tag: string, options: Record<string, string> = {}) {
 		const container = el.createDiv({ cls: 'librarian-block-container' });
 
 		if (options.hideHeader !== 'true') {

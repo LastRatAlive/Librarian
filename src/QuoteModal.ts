@@ -86,7 +86,7 @@ export class QuoteModal extends Modal {
 
         // Copy Rich Reference Notice
         const notice = new Notice('', 8000);
-        const noticeEl = (notice as any).noticeEl; // Accessing internal element
+        const noticeEl = (notice as any).noticeEl as HTMLElement; // Accessing internal element
         noticeEl.empty();
 
         noticeEl.createEl('div', { text: 'Quote added!', cls: 'librarian-notice-title' });

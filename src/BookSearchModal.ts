@@ -81,7 +81,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         const enabledProps = this.plugin.settings.enabledProperties;
         let fmLines: string[] = ["---"];
 
-        const addFM = (key: string, value: any) => {
+        const addFM = (key: string, value: string | number | boolean) => {
             if (enabledProps[key]) {
                 if (typeof value === 'string') {
                     fmLines.push(`${key}: "${value.replace(/"/g, '\\"')}"`);
