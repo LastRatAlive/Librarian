@@ -66,7 +66,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
     }
 
     async onChooseSuggestion(book: BookSearchResult, evt: MouseEvent | KeyboardEvent) {
-        const author = book.author_name ? book.author_name[0] : '';
+        const author = (book.author_name && book.author_name.length > 0) ? book.author_name[0] || '' : '';
         const year = book.first_publish_year ? `${book.first_publish_year}` : '';
         const cover = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : '';
         const isbn = book.isbn ? book.isbn[0] : '';
@@ -88,6 +88,7 @@ pages: ${pages}
 image: "${cover}"
 isbn: "${isbn}"
 tags: mediaDB/book
+shelf: []
 dateRead: ""
 dateAdded: ${dateAdded}
 readCount: 0

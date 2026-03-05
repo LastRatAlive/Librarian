@@ -35,12 +35,13 @@ export class ShelfView extends ItemView {
 
     async render() {
         const container = this.containerEl.children[1];
+        if (!container) return;
         container.empty();
 
         const header = container.createEl('div', { cls: 'nav-header' });
         header.createEl('h3', { text: 'Bookshelves', cls: 'nav-folder-title' });
 
-        const content = container.createEl('div', { cls: 'nav-folder' });
+        const content = container.createEl('div', { cls: 'nav-folder librarian-shelf-view' });
         content.style.marginTop = '10px';
 
         // 1. Find all books and group them by shelf
@@ -78,7 +79,10 @@ export class ShelfView extends ItemView {
         const sortedShelfNames = Object.keys(shelves).sort();
 
         for (const shelfName of sortedShelfNames) {
-            this.renderShelf(content, shelfName, shelves[shelfName]);
+            const shelfBooks = shelves[shelfName];
+            if (shelfBooks) {
+                this.renderShelf(content, shelfName, shelfBooks);
+            }
         }
 
         // 3. Render unshelved books

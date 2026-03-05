@@ -2,6 +2,8 @@ import { App, MarkdownView, Plugin, TFile, Notice, WorkspaceLeaf } from 'obsidia
 import { LibrarianSettings, DEFAULT_SETTINGS, LibrarianSettingTab } from './settings';
 import { BookSearchModal } from './BookSearchModal';
 import { ShelfView, SHELF_VIEW_TYPE } from './ShelfView';
+import { StatsView, STATS_VIEW_TYPE } from './StatsView';
+import { ShelfSelectionModal } from './ShelfSelectionModal';
 
 export default class LibrarianPlugin extends Plugin {
 	settings: LibrarianSettings;
@@ -9,26 +11,45 @@ export default class LibrarianPlugin extends Plugin {
 	async onload() {
 		console.log('Loading Librarian plugin');
 
+		this.registerView(
+			SHELF_VIEW_TYPE,
+			(leaf) => new ShelfView(leaf, this)
+		);
+
+		this.registerView(
+			STATS_VIEW_TYPE,
+			(leaf) => new StatsView(leaf, this)
+		);
+
 		// Check when a file is opened
 		this.registerEvent(
-			this.app.workspace.on('file-open', (file: TFile | null) => {
-				this.updateActiveView(file);
+			this.app.workspace.on('file-open', () => {
+				this.updateAllViews();
 			})
 		);
 
 		// Also check when metadata finishes processing (fixes new book creation delay)
 		this.registerEvent(
-			this.app.metadataCache.on('changed', (file: TFile) => {
-				const activeFile = this.app.workspace.getActiveFile();
-				if (activeFile && file.path === activeFile.path) {
-					this.updateActiveView(file);
-				}
+			this.app.metadataCache.on('changed', () => {
+				this.updateAllViews();
 			})
 		);
 
-		// Also check the currently active file on load
+		// Also check the currently active file on load + init views
 		this.app.workspace.onLayoutReady(() => {
-			this.updateActiveView(this.app.workspace.getActiveFile());
+			this.updateAllViews();
+
+			// Auto-initialize sidebar views if they don't exist yet
+			this.activateShelfView();
+		});
+
+		// Add Ribbon Icons
+		this.addRibbonIcon('library', 'Open Bookshelves', () => {
+			this.activateShelfView();
+		});
+
+		this.addRibbonIcon('bar-chart', 'Open Reading Stats', () => {
+			this.activateStatsView();
 		});
 
 		this.addCommand({
@@ -36,6 +57,14 @@ export default class LibrarianPlugin extends Plugin {
 			name: 'Open Bookshelves',
 			callback: () => {
 				this.activateShelfView();
+			}
+		});
+
+		this.addCommand({
+			id: 'librarian-open-stats',
+			name: 'Open Reading Stats',
+			callback: () => {
+				this.activateStatsView();
 			}
 		});
 
@@ -74,30 +103,37 @@ export default class LibrarianPlugin extends Plugin {
 
 	onunload() {
 		console.log('Unloading Librarian plugin');
-		this.removeButtonsFromAllViews();
+		// Remove from all views when unloading
+		document.querySelectorAll('.librarian-button-container').forEach(el => el.remove());
 	}
 
-	private updateActiveView(file: TFile | null) {
-		this.removeButtonsFromAllViews(); // Clear old buttons first
+	private updateAllViews() {
+		const leaves = this.app.workspace.getLeavesOfType('markdown');
+		for (const leaf of leaves) {
+			const view = leaf.view as MarkdownView;
+			if (view && view.file) {
+				this.updateViewButtons(view, view.file);
+			}
+		}
+	}
 
-		if (!file) return;
+	private updateViewButtons(view: MarkdownView, file: TFile) {
+		const container = view.containerEl.querySelector('.view-header');
+		if (!container) return;
+
+		// Clear old buttons for this specific view
+		container.querySelectorAll('.librarian-button-container').forEach(el => el.remove());
 
 		const cache = this.app.metadataCache.getFileCache(file);
 		const frontmatter = cache?.frontmatter;
 
 		// Only show on books
 		if (frontmatter?.['type'] === 'book') {
-			this.injectButtons(file, frontmatter);
+			this.injectButtonsIntoContainer(container, file, frontmatter);
 		}
 	}
 
-	private injectButtons(file: TFile, frontmatter: any) {
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!view) return;
-
-		const container = view.containerEl.querySelector('.view-header');
-		if (!container) return;
-
+	private injectButtonsIntoContainer(container: Element, file: TFile, frontmatter: any) {
 		// Create our button container in the header
 		const buttonContainer = container.createEl('div', { cls: 'librarian-button-container' });
 		buttonContainer.style.display = 'flex';
@@ -117,10 +153,10 @@ export default class LibrarianPlugin extends Plugin {
 			const dnfBtn = buttonContainer.createEl('button', { text: '❌ Didn\'t Finish' });
 			dnfBtn.onclick = () => this.updateReadingStatus(file, 'dnf');
 		}
-	}
 
-	private removeButtonsFromAllViews() {
-		document.querySelectorAll('.librarian-button-container').forEach(el => el.remove());
+		// Shelf Management Button
+		const shelfBtn = buttonContainer.createEl('button', { text: 'Shelf +' });
+		shelfBtn.onclick = () => new ShelfSelectionModal(this.app, this, file).open();
 	}
 
 	private runCommand(checking: boolean, action: 'start' | 'finish' | 'dnf'): boolean {
@@ -148,12 +184,32 @@ export default class LibrarianPlugin extends Plugin {
 				const currentCount = parseInt(fm['readCount']) || 0;
 				fm['readCount'] = currentCount + 1;
 
+				// Initialize readHistory if missing
+				if (!fm['readHistory']) {
+					fm['readHistory'] = [];
+				}
+
+				// Create a new session entry
+				fm['readHistory'].push({ start: today, end: "" });
+
 				new Notice('Started reading!');
 			}
 			else if (action === 'finish') {
 				fm['currentlyReading'] = false;
 				fm['lastRead'] = today;
 				fm['dateRead'] = today; // Also update dateRead to match
+
+				// Update the latest readHistory session if it exists and lacks an end date
+				if (fm['readHistory'] && Array.isArray(fm['readHistory']) && fm['readHistory'].length > 0) {
+					const lastSession = fm['readHistory'][fm['readHistory'].length - 1];
+					if (lastSession && !lastSession.end) {
+						lastSession.end = today;
+					}
+				} else {
+					// Edge case: Finished reading but no start session was recorded
+					if (!fm['readHistory']) fm['readHistory'] = [];
+					fm['readHistory'].push({ start: "", end: today });
+				}
 
 				new Notice('Finished reading!');
 			}
@@ -166,14 +222,21 @@ export default class LibrarianPlugin extends Plugin {
 					fm['readCount'] = currentCount - 1;
 				}
 
+				// Optionally remove or close the latest readHistory session for a DNF
+				if (fm['readHistory'] && Array.isArray(fm['readHistory']) && fm['readHistory'].length > 0) {
+					const lastSession = fm['readHistory'][fm['readHistory'].length - 1];
+					if (lastSession && !lastSession.end) {
+						lastSession.end = "DNF";
+					}
+				}
+
 				new Notice('Marked as Didn\'t Finish.');
 			}
 		});
 
-		// Buttons will automatically trigger a refresh because the file change triggers Obsidian events,
-		// but we can manually invoke it to be safe and responsive:
+		// Wait for metadata cache to update automatically, but we can also manually trigger visual refresh:
 		setTimeout(() => {
-			this.updateActiveView(file);
+			this.updateAllViews();
 		}, 100);
 	}
 
@@ -192,18 +255,40 @@ export default class LibrarianPlugin extends Plugin {
 		const leaves = workspace.getLeavesOfType(SHELF_VIEW_TYPE);
 
 		if (leaves.length > 0) {
-			// A leaf with our view already exists, use that
-			leaf = leaves[0];
+			leaf = leaves[0] as WorkspaceLeaf | null;
 		} else {
-			// Our view could not be found in the workspace, create a new leaf in the right sidebar
 			const rightLeaf = workspace.getRightLeaf(false);
 			if (rightLeaf) {
-				leaf = rightLeaf;
-				await leaf.setViewState({ type: SHELF_VIEW_TYPE, active: true });
+				leaf = rightLeaf as WorkspaceLeaf | null;
+				if (leaf) {
+					await leaf.setViewState({ type: SHELF_VIEW_TYPE, active: true });
+				}
 			}
 		}
 
-		// "Reveal" the leaf in case it is in a collapsed sidebar
+		if (leaf) {
+			workspace.revealLeaf(leaf);
+		}
+	}
+
+	async activateStatsView() {
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(STATS_VIEW_TYPE);
+
+		if (leaves.length > 0) {
+			leaf = leaves[0] as WorkspaceLeaf | null;
+		} else {
+			const rightLeaf = workspace.getRightLeaf(false);
+			if (rightLeaf) {
+				leaf = rightLeaf as WorkspaceLeaf | null;
+				if (leaf) {
+					await leaf.setViewState({ type: STATS_VIEW_TYPE, active: true });
+				}
+			}
+		}
+
 		if (leaf) {
 			workspace.revealLeaf(leaf);
 		}

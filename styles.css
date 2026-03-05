@@ -1,8 +1,36 @@
 /*
+ * Author styling for suggestion modal 
+ */
+.librarian-suggestion-author {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    display: block;
+    margin-top: 2px;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/*
+ * Button styling
+ */
+.librarian-button-container button {
+    cursor: pointer;
+    font-size: 0.9em;
+}
 
-If your plugin does not need CSS, delete this file.
+/* 
+ * Shelf View Styling 
+ * Borrowing from native Obsidian .nav-folder and .nav-file classes
+ */
 
-*/
+.librarian-shelf-view .nav-folder-title {
+    padding-left: 8px;
+}
+
+.librarian-shelf-view .nav-file-title {
+    padding-left: 20px;
+}
+
+.librarian-shelf-view .tree-item-inner {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
