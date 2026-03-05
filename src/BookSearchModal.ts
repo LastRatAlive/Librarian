@@ -1,4 +1,4 @@
-import { App, Notice, SuggestModal, TFile, requestUrl } from 'obsidian';
+import { App, Notice, SuggestModal, requestUrl } from 'obsidian';
 import LibrarianPlugin from './main';
 import { DEFAULT_SETTINGS } from './settings';
 
@@ -16,18 +16,18 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
     plugin: LibrarianPlugin;
 
     // Simple debounce timer
-    private debounceTimer: NodeJS.Timeout | null = null;
+    private debounceTimer: number | null = null;
     // Store latest results to feed to getSuggestions
     private lastResults: BookSearchResult[] = [];
 
     constructor(app: App, plugin: LibrarianPlugin) {
         super(app);
         this.plugin = plugin;
-        this.setPlaceholder('Search Open Library (e.g. "Dune Frank Herbert")');
+        this.setPlaceholder('Search open library (e.g. "dune frank herbert")');
 
         // SuggestModal uses 250ms delay internally for getSuggestions, but we 
         // want to avoid hammering the API if the user types fast.
-        this.emptyStateText = 'Type a book title to search...';
+        this.emptyStateText = 'Type a book title to search';
     }
 
     async getSuggestions(query: string): Promise<BookSearchResult[]> {
@@ -35,27 +35,31 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
 
         // We return a promise that resolves when the API call finishes.
         return new Promise((resolve) => {
-            if (this.debounceTimer) {
-                clearTimeout(this.debounceTimer);
+            if (this.debounceTimer !== null) {
+                window.clearTimeout(this.debounceTimer);
             }
 
-            this.debounceTimer = setTimeout(async () => {
-                try {
-                    const encodedQuery = encodeURIComponent(query);
-                    const response = await requestUrl({
-                        url: `https://openlibrary.org/search.json?q=${encodedQuery}&limit=10&fields=key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median`,
-                    });
-
-                    const data = response.json;
-                    this.lastResults = data.docs || [];
-                    resolve(this.lastResults);
-                } catch (e) {
-                    console.error('OpenLibrary Search Error', e);
-                    new Notice('Failed to search Open Library');
-                    resolve([]);
-                }
+            this.debounceTimer = window.setTimeout(() => {
+                void this.performSearch(query, resolve);
             }, 400); // 400ms debounce
         });
+    }
+
+    private async performSearch(query: string, resolve: (value: BookSearchResult[]) => void) {
+        try {
+            const encodedQuery = encodeURIComponent(query);
+            const response = await requestUrl({
+                url: `https://openlibrary.org/search.json?q=${encodedQuery}&limit=10&fields=key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median`,
+            });
+
+            const data = response.json as { docs: BookSearchResult[] };
+            this.lastResults = data.docs;
+            resolve(this.lastResults);
+        } catch (e) {
+            console.error('OpenLibrary search error', e);
+            new Notice('Failed to search open library');
+            resolve([]);
+        }
     }
 
     renderSuggestion(book: BookSearchResult, el: HTMLElement) {
@@ -66,7 +70,11 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         el.createEl('small', { text: author, cls: 'librarian-suggestion-author' });
     }
 
-    async onChooseSuggestion(book: BookSearchResult, evt: MouseEvent | KeyboardEvent) {
+    onChooseSuggestion(book: BookSearchResult, evt: MouseEvent | KeyboardEvent) {
+        void this.addBookToVault(book);
+    }
+
+    private async addBookToVault(book: BookSearchResult) {
         const author = (book.author_name && book.author_name.length > 0) ? book.author_name[0] || '' : '';
         const year = book.first_publish_year ? `${book.first_publish_year}` : '';
         const cover = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : '';
@@ -166,8 +174,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
             const file = await this.app.vault.create(fullPath, finalContent);
 
             // Open the newly created note
-            const leaf = this.app.workspace.getLeaf(false);
-            await leaf.openFile(file);
+            void this.app.workspace.getLeaf(false).openFile(file);
 
             new Notice(`Added ${book.title} to your library`);
         } catch (error) {

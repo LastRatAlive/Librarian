@@ -1,5 +1,10 @@
 import { App, TFile } from 'obsidian';
 
+interface ReadSession {
+    start: string;
+    end: string;
+}
+
 export function getBooksActiveOnDate(app: App, dateString: string): TFile[] {
     const selectedDate = new Date(dateString);
     if (isNaN(selectedDate.getTime())) {
@@ -11,7 +16,7 @@ export function getBooksActiveOnDate(app: App, dateString: string): TFile[] {
 
     for (const file of allFiles) {
         const cache = app.metadataCache.getFileCache(file);
-        const history = cache?.frontmatter?.['readHistory'];
+        const history = cache?.frontmatter?.['readHistory'] as ReadSession[] | undefined;
 
         if (Array.isArray(history)) {
             for (const session of history) {

@@ -1,4 +1,4 @@
-import { App, MarkdownView, Plugin, TFile, Notice, WorkspaceLeaf, Platform } from 'obsidian';
+import { MarkdownView, Plugin, TFile, Notice, WorkspaceLeaf, Platform } from 'obsidian';
 import { LibrarianSettings, DEFAULT_SETTINGS, LibrarianSettingTab } from './settings';
 import { BookSearchModal } from './BookSearchModal';
 import { ShelfView, SHELF_VIEW_TYPE } from './ShelfView';
@@ -8,11 +8,22 @@ import { DateQueryModal } from './DateQueryModal';
 import { getBooksActiveOnDate } from './BookUtils';
 import { QuoteModal } from './QuoteModal';
 
+interface BookFrontmatter {
+	type?: string;
+	title?: string;
+	author?: string;
+	readCount?: number | string;
+	readHistory?: { start: string, end: string }[];
+	currentlyReading?: boolean | string;
+	pages?: number | string;
+	shelf?: string | string[];
+	[key: string]: string | number | boolean | unknown[] | Record<string, unknown> | undefined;
+}
+
 export default class LibrarianPlugin extends Plugin {
 	settings: LibrarianSettings;
 
 	async onload() {
-		console.log('Loading Librarian plugin');
 		await this.loadSettings();
 
 		this.registerView(
@@ -44,26 +55,26 @@ export default class LibrarianPlugin extends Plugin {
 			this.updateAllViews();
 
 			// Auto-initialize sidebar views if they don't exist yet
-			this.activateShelfView();
+			void this.activateShelfView();
 		});
 
 		// Add Ribbon Icons
 		if (this.settings.showShelfRibbon) {
-			this.addRibbonIcon('library', 'Open Bookshelves', () => {
-				this.activateShelfView();
+			this.addRibbonIcon('library', 'Open bookshelves', () => {
+				void this.activateShelfView();
 			});
 		}
 
 		if (this.settings.showStatsRibbon) {
-			this.addRibbonIcon('bar-chart', 'Open Reading Stats', () => {
-				this.activateStatsView();
+			this.addRibbonIcon('bar-chart', 'Open reading stats', () => {
+				void this.activateStatsView();
 			});
 		}
 
 		// Register Code Block Processor
 		this.registerMarkdownCodeBlockProcessor("librarian", (source, el, ctx) => {
 			const rows = source.split("\n").filter((row) => row.length > 0);
-			const options: any = {};
+			const options: Record<string, string> = {};
 
 			for (const row of rows) {
 				const [key, ...valueParts] = row.split(":");
@@ -73,7 +84,7 @@ export default class LibrarianPlugin extends Plugin {
 			}
 
 			if (options.tag) {
-				this.renderTaggedQuotes(el, options.tag, options);
+				void this.renderTaggedQuotes(el, options.tag, options);
 				return;
 			}
 
@@ -86,7 +97,7 @@ export default class LibrarianPlugin extends Plugin {
 			const container = el.createDiv({ cls: 'librarian-block-container' });
 
 			if (options.hideHeader !== 'true') {
-				container.createEl('h4', { text: `Reading List for ${dateStr}`, cls: 'librarian-block-title' });
+				container.createEl('div', { text: `Reading list for ${dateStr}`, cls: 'librarian-block-title librarian-view-header' });
 			}
 
 			if (books.length === 0) {
@@ -100,11 +111,11 @@ export default class LibrarianPlugin extends Plugin {
 					if (!isNaN(limit)) booksToDisplay = books.slice(0, limit);
 				}
 
-				for (const file of booksToDisplay) {
+				for (const book of booksToDisplay) {
 					const li = ul.createEl('li');
-					const link = li.createEl('a', { text: file.basename, cls: 'internal-link' });
+					const link = li.createEl('a', { text: book.basename, cls: 'internal-link' });
 					link.onclick = (e) => {
-						this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(file);
+						void this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(book);
 					};
 				}
 			}
@@ -112,17 +123,17 @@ export default class LibrarianPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'open-shelves',
-			name: 'Open Bookshelves',
+			name: 'Show bookshelves',
 			callback: () => {
-				this.activateShelfView();
+				void this.activateShelfView();
 			}
 		});
 
 		this.addCommand({
 			id: 'open-stats',
-			name: 'Open Reading Stats',
+			name: 'Show reading stats',
 			callback: () => {
-				this.activateStatsView();
+				void this.activateStatsView();
 			}
 		});
 
@@ -132,7 +143,7 @@ export default class LibrarianPlugin extends Plugin {
 		// Search and Add Book Command
 		this.addCommand({
 			id: 'add-book',
-			name: 'Add Book (Search Open Library)',
+			name: 'Add book (search open library)',
 			callback: () => {
 				new BookSearchModal(this.app, this).open();
 			}
@@ -140,7 +151,7 @@ export default class LibrarianPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'query-date',
-			name: 'What was I reading? (Search by Date)',
+			name: 'Search reading history by date',
 			callback: () => {
 				new DateQueryModal(this.app, this).open();
 			}
@@ -149,25 +160,24 @@ export default class LibrarianPlugin extends Plugin {
 		// Fallback commands for users who prefer Command Palette
 		this.addCommand({
 			id: 'start-reading',
-			name: 'Start Reading (Update Frontmatter)',
+			name: 'Start reading (update frontmatter)',
 			checkCallback: (checking: boolean) => this.runCommand(checking, 'start')
 		});
 
 		this.addCommand({
 			id: 'finish-reading',
-			name: 'Finish Reading (Update Frontmatter)',
+			name: 'Finish reading (update frontmatter)',
 			checkCallback: (checking: boolean) => this.runCommand(checking, 'finish')
 		});
 
 		this.addCommand({
 			id: 'dnf',
-			name: 'Didn\'t Finish Reading (Update Frontmatter)',
+			name: 'Didn\'t finish reading (update frontmatter)',
 			checkCallback: (checking: boolean) => this.runCommand(checking, 'dnf')
 		});
 	}
 
 	onunload() {
-		console.log('Unloading Librarian plugin');
 		// Remove from all views when unloading
 		document.querySelectorAll('.librarian-button-container').forEach(el => el.remove());
 	}
@@ -190,7 +200,7 @@ export default class LibrarianPlugin extends Plugin {
 		container.querySelectorAll('.librarian-button-container').forEach(el => el.remove());
 
 		const cache = this.app.metadataCache.getFileCache(file);
-		const frontmatter = cache?.frontmatter;
+		const frontmatter = cache?.frontmatter as BookFrontmatter | undefined;
 
 		// Only show on books
 		if (frontmatter?.['type'] === 'book') {
@@ -198,158 +208,118 @@ export default class LibrarianPlugin extends Plugin {
 		}
 	}
 
-	private injectButtonsIntoContainer(container: Element, file: TFile, frontmatter: Record<string, any>) {
+	private injectButtonsIntoContainer(container: Element, file: TFile, frontmatter: BookFrontmatter) {
 		if (!this.settings.showNoteButtons) return;
 		// Create our button container in the header
 		const buttonContainer = container.createEl('div', { cls: 'librarian-button-container' });
-		buttonContainer.style.display = 'flex';
-		buttonContainer.style.gap = Platform.isMobile ? '4px' : '8px';
-		buttonContainer.style.alignItems = 'center';
-		buttonContainer.style.padding = Platform.isMobile ? '0 5px' : '0 10px';
 
 		const currentlyReading = frontmatter['currentlyReading'] === true || frontmatter['currentlyReading'] === 'true';
 
 		if (!currentlyReading) {
 			const startBtn = buttonContainer.createEl('button', {
-				text: Platform.isMobile ? '▶' : '▶ Start Reading',
-				title: 'Start Reading'
+				text: Platform.isMobile ? '▶' : 'Start reading',
+				cls: 'librarian-btn librarian-start-btn'
 			});
-			startBtn.onclick = () => this.updateReadingStatus(file, 'start');
+			if (Platform.isMobile) startBtn.setAttribute('aria-label', 'Start reading');
+			startBtn.onclick = () => void this.runCommand(false, 'start');
 		} else {
 			const finishBtn = buttonContainer.createEl('button', {
-				text: Platform.isMobile ? '✅' : '✅ Finished',
-				title: 'Mark as Finished'
+				text: Platform.isMobile ? '✔' : 'Finished',
+				cls: 'librarian-btn librarian-finish-btn'
 			});
-			finishBtn.onclick = () => this.updateReadingStatus(file, 'finish');
-
-			const dnfBtn = buttonContainer.createEl('button', {
-				text: Platform.isMobile ? '❌' : '❌ Didn\'t Finish',
-				title: 'Didn\'t Finish'
-			});
-			dnfBtn.onclick = () => this.updateReadingStatus(file, 'dnf');
+			if (Platform.isMobile) finishBtn.setAttribute('aria-label', 'Finished reading');
+			finishBtn.onclick = () => void this.runCommand(false, 'finish');
 		}
 
-		// Shelf Management Button
 		const shelfBtn = buttonContainer.createEl('button', {
-			text: Platform.isMobile ? '+ 📚' : 'Shelf +',
-			title: 'Manage Shelves'
+			text: Platform.isMobile ? '📚' : 'Add to shelf',
+			cls: 'librarian-btn librarian-shelf-btn'
 		});
-		shelfBtn.onclick = () => new ShelfSelectionModal(this.app, this, file).open();
+		if (Platform.isMobile) shelfBtn.setAttribute('aria-label', 'Add to shelf');
+		shelfBtn.onclick = () => {
+			new ShelfSelectionModal(this.app, this, file).open();
+		};
 
-		// Add Quote Button
 		const quoteBtn = buttonContainer.createEl('button', {
-			text: Platform.isMobile ? '💬' : '💬 Add Quote',
-			title: 'Add Quote'
+			text: Platform.isMobile ? '❝' : 'Add quote',
+			cls: 'librarian-btn librarian-quote-btn'
 		});
-		quoteBtn.onclick = () => new QuoteModal(this.app, this, file).open();
+		if (Platform.isMobile) quoteBtn.setAttribute('aria-label', 'Add quote');
+		quoteBtn.onclick = () => {
+			new QuoteModal(this.app, this, file).open();
+		};
 	}
 
-	private async renderTaggedQuotes(el: HTMLElement, tag: string, options: Record<string, string> = {}) {
-		const container = el.createDiv({ cls: 'librarian-block-container' });
-
-		if (options.hideHeader !== 'true') {
-			container.createEl('h4', { text: `Quotes tagged with ${tag}`, cls: 'librarian-block-title' });
-		}
-
+	private async renderTaggedQuotes(el: HTMLElement, tag: string, options: Record<string, string>) {
+		const filesWithTag: TFile[] = [];
 		const allFiles = this.app.vault.getMarkdownFiles();
-		const matches: { quote: string, file: TFile, blockId: string }[] = [];
 
 		for (const file of allFiles) {
 			const cache = this.app.metadataCache.getFileCache(file);
-			if (cache?.frontmatter?.['type'] !== 'book') continue;
-
-			const content = await this.app.vault.read(file);
-			const lines = content.split('\n');
-
-			for (const line of lines) {
-				if (line.includes(tag) && line.includes('^quote-')) {
-					// Found a tagged quote line
-					const quoteMatch = line.match(/^>\s*"(.*)"\s*.*?\^quote-(.*)$/);
-					if (quoteMatch && quoteMatch[1] && quoteMatch[2]) {
-						matches.push({
-							quote: quoteMatch[1],
-							file: file,
-							blockId: `quote-${quoteMatch[2]}`
-						});
-					} else {
-						// Fallback if regex is too strict
-						const parts = line.split('^quote-');
-						const cleanQuote = parts[0]?.replace(/^>\s*/, '').trim() || "";
-						const blockIdPart = parts[1]?.trim() || "";
-						if (cleanQuote && blockIdPart) {
-							matches.push({ quote: cleanQuote, file: file, blockId: `quote-${blockIdPart}` });
-						}
-					}
+			if (cache?.frontmatter?.['type'] === 'book') {
+				const content = await this.app.vault.read(file);
+				if (content.includes(`tag: ${tag}`) || content.includes(`#${tag}`)) {
+					filesWithTag.push(file);
 				}
 			}
 		}
 
-		if (matches.length === 0) {
-			container.createEl('p', { text: `No quotes found with tag ${tag}`, cls: 'librarian-block-empty' });
-		} else {
-			let displayedMatches = matches;
-			if (options.limit) {
-				const limit = parseInt(options.limit);
-				if (!isNaN(limit)) displayedMatches = matches.slice(0, limit);
-			}
+		if (filesWithTag.length === 0) {
+			el.createEl('p', { text: `No quotes found for tag: ${tag}` });
+			return;
+		}
 
-			for (const match of displayedMatches) {
-				const quoteEl = container.createEl('blockquote', { cls: 'librarian-block-quote' });
-				quoteEl.createEl('p', { text: match.quote });
+		const container = el.createDiv({ cls: 'librarian-quotes-container' });
+		if (options.hideHeader !== 'true') {
+			container.createEl('div', { text: `Quotes tagged: ${tag}`, cls: 'librarian-block-title librarian-view-header' });
+		}
 
-				const sourceEl = container.createEl('div', { cls: 'librarian-quote-source' });
-				sourceEl.style.textAlign = 'right';
-				sourceEl.style.fontSize = '0.8em';
-				sourceEl.style.marginTop = '-10px';
-				sourceEl.style.marginBottom = '20px';
+		const fragment = document.createDocumentFragment();
+		for (const file of filesWithTag) {
+			const content = await this.app.vault.read(file);
+			const quoteLines = content.split("\n").filter(line => line.startsWith(">") && (line.includes(`tag: ${tag}`) || line.includes(`#${tag}`)));
 
-				const link = sourceEl.createEl('a', { text: `— ${match.file.basename}`, cls: 'internal-link' });
+			for (const quote of quoteLines) {
+				const quoteEl = fragment.createEl('blockquote', { cls: 'librarian-tag-quote' });
+				quoteEl.setText(quote.replace(/^>\s*/, '').replace(/tag:.*|#\S+/g, '').trim());
+				const source = fragment.createEl('p', { cls: 'librarian-quote-source' });
+				const link = source.createEl('a', { text: `- ${file.basename}`, cls: 'internal-link' });
 				link.onclick = (e) => {
-					this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(match.file);
+					void this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(file);
 				};
 			}
 		}
+		container.appendChild(fragment);
 	}
 
 	private runCommand(checking: boolean, action: 'start' | 'finish' | 'dnf'): boolean {
-		const file = this.app.workspace.getActiveFile();
-		if (!file) return false;
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view || !view.file) return false;
 
-		const cache = this.app.metadataCache.getFileCache(file);
-		if (cache?.frontmatter?.['type'] === 'book') {
-			if (!checking) {
-				this.updateReadingStatus(file, action);
-			}
-			return true;
-		}
-		return false;
+		const cache = this.app.metadataCache.getFileCache(view.file);
+		if (cache?.frontmatter?.['type'] !== 'book') return false;
+
+		if (checking) return true;
+
+		void this.performAction(view.file, action);
+		return true;
 	}
 
-	private async updateReadingStatus(file: TFile, action: 'start' | 'finish' | 'dnf') {
-		await this.app.fileManager.processFrontMatter(file, (fm) => {
-			const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+	private async performAction(file: TFile, action: 'start' | 'finish' | 'dnf') {
+		const today = new Date().toISOString().split('T')[0] ?? "";
 
+		await this.app.fileManager.processFrontMatter(file, (fm: BookFrontmatter) => {
 			if (action === 'start') {
 				fm['currentlyReading'] = true;
-
-				// Increment read count
-				const currentCount = parseInt(fm['readCount']) || 0;
-				fm['readCount'] = currentCount + 1;
-
-				// Initialize readHistory if missing
-				if (!fm['readHistory']) {
-					fm['readHistory'] = [];
-				}
-
-				// Create a new session entry
+				if (!fm['readHistory']) fm['readHistory'] = [];
 				fm['readHistory'].push({ start: today, end: "" });
-
 				new Notice('Started reading!');
 			}
 			else if (action === 'finish') {
 				fm['currentlyReading'] = false;
-				fm['lastRead'] = today;
-				fm['dateRead'] = today; // Also update dateRead to match
+				fm['dateRead'] = today;
+				const currentCount = parseInt(fm['readCount']?.toString() || '0') || 0;
+				fm['readCount'] = currentCount + 1;
 
 				// Update the latest readHistory session if it exists and lacks an end date
 				if (fm['readHistory'] && Array.isArray(fm['readHistory']) && fm['readHistory'].length > 0) {
@@ -363,13 +333,13 @@ export default class LibrarianPlugin extends Plugin {
 					fm['readHistory'].push({ start: "", end: today });
 				}
 
-				new Notice('Finished reading!');
+				new Notice('Finished reading');
 			}
 			else if (action === 'dnf') {
 				fm['currentlyReading'] = false;
 
 				// Decrement read count since we're giving up
-				const currentCount = parseInt(fm['readCount']) || 0;
+				const currentCount = parseInt(fm['readCount']?.toString() || '0') || 0;
 				if (currentCount > 0) {
 					fm['readCount'] = currentCount - 1;
 				}
@@ -382,18 +352,19 @@ export default class LibrarianPlugin extends Plugin {
 					}
 				}
 
-				new Notice('Marked as Didn\'t Finish.');
+				new Notice('Marked as didn\'t finish');
 			}
 		});
 
 		// Wait for metadata cache to update automatically, but we can also manually trigger visual refresh:
-		setTimeout(() => {
+		window.setTimeout(() => {
 			this.updateAllViews();
 		}, 100);
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const data = await this.loadData() as Record<string, unknown> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
 	}
 
 	async saveSettings() {
@@ -407,11 +378,11 @@ export default class LibrarianPlugin extends Plugin {
 		const leaves = workspace.getLeavesOfType(SHELF_VIEW_TYPE);
 
 		if (leaves.length > 0) {
-			leaf = leaves[0] as WorkspaceLeaf | null;
+			leaf = leaves[0] as WorkspaceLeaf;
 		} else {
 			const rightLeaf = workspace.getRightLeaf(false);
 			if (rightLeaf) {
-				leaf = rightLeaf as WorkspaceLeaf | null;
+				leaf = rightLeaf;
 				if (leaf) {
 					await leaf.setViewState({ type: SHELF_VIEW_TYPE, active: true });
 				}
@@ -419,7 +390,7 @@ export default class LibrarianPlugin extends Plugin {
 		}
 
 		if (leaf) {
-			workspace.revealLeaf(leaf);
+			void workspace.revealLeaf(leaf);
 		}
 	}
 
@@ -430,11 +401,11 @@ export default class LibrarianPlugin extends Plugin {
 		const leaves = workspace.getLeavesOfType(STATS_VIEW_TYPE);
 
 		if (leaves.length > 0) {
-			leaf = leaves[0] as WorkspaceLeaf | null;
+			leaf = leaves[0] as WorkspaceLeaf;
 		} else {
 			const rightLeaf = workspace.getRightLeaf(false);
 			if (rightLeaf) {
-				leaf = rightLeaf as WorkspaceLeaf | null;
+				leaf = rightLeaf;
 				if (leaf) {
 					await leaf.setViewState({ type: STATS_VIEW_TYPE, active: true });
 				}
@@ -442,7 +413,7 @@ export default class LibrarianPlugin extends Plugin {
 		}
 
 		if (leaf) {
-			workspace.revealLeaf(leaf);
+			void workspace.revealLeaf(leaf);
 		}
 	}
 }

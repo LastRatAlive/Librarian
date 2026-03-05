@@ -74,98 +74,109 @@ export class LibrarianSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'General Settings' });
+		new Setting(containerEl)
+			.setName('Plugin configuration')
+			.setHeading();
 
 		new Setting(containerEl)
-			.setName('Default Book Folder')
+			.setName('Default book folder')
 			.setDesc('Folder where new books will be saved. Must exist.')
 			.addText(text => text
 				.setPlaceholder('Books/')
 				.setValue(this.plugin.settings.defaultBookFolder)
-				.onChange(async (value) => {
+				.onChange((value) => {
 					this.plugin.settings.defaultBookFolder = value;
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 				}));
 
-		containerEl.createEl('h2', { text: 'UI Customization' });
+		new Setting(containerEl)
+			.setName('Interface adjustments')
+			.setHeading();
 
 		new Setting(containerEl)
-			.setName('Show Bookshelves Ribbon Icon')
+			.setName('Show bookshelves ribbon icon')
 			.setDesc('Add a bookshelf icon to the left ribbon.')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showShelfRibbon)
-				.onChange(async (value) => {
+				.onChange((value) => {
 					this.plugin.settings.showShelfRibbon = value;
-					await this.plugin.saveSettings();
-					new Notice('Please reload the plugin to see ribbon changes.');
+					void this.plugin.saveSettings();
+					new Notice('Please reload the plugin to see ribbon changes');
 				}));
 
 		new Setting(containerEl)
-			.setName('Show Stats Ribbon Icon')
+			.setName('Show stats ribbon icon')
 			.setDesc('Add a bar chart icon to the left ribbon.')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showStatsRibbon)
-				.onChange(async (value) => {
+				.onChange((value) => {
 					this.plugin.settings.showStatsRibbon = value;
-					await this.plugin.saveSettings();
-					new Notice('Please reload the plugin to see ribbon changes.');
+					void this.plugin.saveSettings();
+					new Notice('Please reload the plugin to see ribbon changes');
 				}));
 
 		new Setting(containerEl)
-			.setName('Show Note Action Buttons')
-			.setDesc('Enable "Start Reading", "Finished", "Add Quote", etc. buttons in book headers.')
+			.setName('Show note action buttons')
+			.setDesc('Enable start reading, add quote, and other buttons in book headers.')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showNoteButtons)
-				.onChange(async (value) => {
+				.onChange((value) => {
 					this.plugin.settings.showNoteButtons = value;
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 				}));
 
-		containerEl.createEl('h2', { text: 'Book Note Template' });
+		new Setting(containerEl)
+			.setName('Note templates')
+			.setHeading();
+
 		containerEl.createEl('p', {
-			text: 'Customize the initial content of your book notes. Use {{title}}, {{author}}, {{pages}}, {{year}}, {{cover}}, {{cover_image}}, {{isbn}}, {{id}}, {{dateAdded}} placeholders.'
-		}).style.fontSize = '0.8em';
+			text: 'Customize the initial content of your book notes. Use {{title}}, {{author}}, {{pages}}, {{year}}, {{cover}}, {{cover_image}}, {{isbn}}, {{id}}, {{dateAdded}} placeholders.',
+			cls: 'librarian-settings-intro'
+		});
 
 		new Setting(containerEl)
-			.setName('Note Template')
+			.setName('Note template')
 			.setDesc('The skeleton for every new book note.')
-			.addTextArea(text => text
-				.setPlaceholder('Template text...')
-				.setValue(this.plugin.settings.bookTemplate)
-				.onChange(async (value) => {
-					this.plugin.settings.bookTemplate = value;
-					await this.plugin.saveSettings();
-				})
-				.inputEl.style.height = '300px'
-			).controlEl.style.width = '100%';
+			.addTextArea(text => {
+				text.setPlaceholder('Template text...')
+					.setValue(this.plugin.settings.bookTemplate)
+					.onChange((value) => {
+						this.plugin.settings.bookTemplate = value;
+						void this.plugin.saveSettings();
+					});
+				text.inputEl.addClass('librarian-settings-template-area');
+			});
 
-		containerEl.createEl('h2', { text: 'Metadata Controls' });
+		new Setting(containerEl)
+			.setName('Property management')
+			.setHeading();
 
-		const propContainer = containerEl.createDiv();
-		propContainer.createEl('p', { text: 'Select which core properties to include in new books:' }).style.fontSize = '0.9em';
+		containerEl.createEl('p', {
+			text: 'Select which core properties to include in new books:',
+			cls: 'librarian-settings-intro'
+		});
 
 		const properties = Object.keys(this.plugin.settings.enabledProperties);
 		for (const prop of properties) {
-			new Setting(propContainer)
+			new Setting(containerEl)
 				.setName(prop)
 				.addToggle(toggle => toggle
 					.setValue(this.plugin.settings.enabledProperties[prop] ?? true)
-					.onChange(async (value) => {
+					.onChange((value) => {
 						this.plugin.settings.enabledProperties[prop] = value;
-						await this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					}));
 		}
 
 		new Setting(containerEl)
-			.setName('Additional Properties')
-			.setDesc('Any extra YAML key-value pairs to add (e.g., "owned: true").')
+			.setName('Additional properties')
+			.setDesc('Any extra YAML key-value pairs to add (e.g. "owned: true").')
 			.addTextArea(text => text
-				.setPlaceholder('key: value')
+				.setPlaceholder('Key: value')
 				.setValue(this.plugin.settings.additionalProperties)
-				.onChange(async (value) => {
+				.onChange((value) => {
 					this.plugin.settings.additionalProperties = value;
-					await this.plugin.saveSettings();
+					void this.plugin.saveSettings();
 				}));
 	}
 }
-

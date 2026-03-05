@@ -3,6 +3,12 @@ import LibrarianPlugin from './main';
 
 export const SHELF_VIEW_TYPE = 'librarian-shelf-view';
 
+interface BookFrontmatter {
+    type?: string;
+    shelf?: string | string[];
+    title?: string;
+}
+
 export class ShelfView extends ItemView {
     plugin: LibrarianPlugin;
 
@@ -25,8 +31,8 @@ export class ShelfView extends ItemView {
 
     async onOpen() {
         // Re-render when files change
-        this.registerEvent(this.app.metadataCache.on('resolved', () => this.render()));
-        this.render();
+        this.registerEvent(this.app.metadataCache.on('resolved', () => void this.render()));
+        void this.render();
     }
 
     async onClose() {
@@ -39,10 +45,9 @@ export class ShelfView extends ItemView {
         container.empty();
 
         const header = container.createEl('div', { cls: 'nav-header' });
-        header.createEl('h3', { text: 'Bookshelves', cls: 'nav-folder-title' });
+        header.createEl('div', { text: 'Bookshelves', cls: 'nav-folder-title librarian-view-header' });
 
         const content = container.createEl('div', { cls: 'nav-folder librarian-shelf-view' });
-        content.style.marginTop = '10px';
 
         // 1. Find all books and group them by shelf
         const allFiles = this.app.vault.getMarkdownFiles();
@@ -51,8 +56,10 @@ export class ShelfView extends ItemView {
 
         for (const file of allFiles) {
             const cache = this.app.metadataCache.getFileCache(file);
-            if (cache?.frontmatter?.['type'] === 'book') {
-                let bookShelves = cache.frontmatter['shelf'];
+            const frontmatter = cache?.frontmatter as unknown as BookFrontmatter | undefined;
+
+            if (frontmatter?.type === 'book') {
+                const bookShelves = frontmatter.shelf;
 
                 // Handle both string and array formats for frontmatter
                 if (!bookShelves) {
@@ -61,13 +68,15 @@ export class ShelfView extends ItemView {
                 }
 
                 if (typeof bookShelves === 'string') {
-                    bookShelves = [bookShelves];
-                }
-
-                if (Array.isArray(bookShelves)) {
+                    const shelf = bookShelves;
+                    if (!shelves[shelf]) shelves[shelf] = [];
+                    shelves[shelf].push(file);
+                } else if (Array.isArray(bookShelves)) {
                     for (const shelf of bookShelves) {
-                        if (!shelves[shelf]) shelves[shelf] = [];
-                        shelves[shelf].push(file);
+                        if (typeof shelf === 'string') {
+                            if (!shelves[shelf]) shelves[shelf] = [];
+                            shelves[shelf].push(file);
+                        }
                     }
                 } else {
                     noShelf.push(file);
@@ -78,21 +87,24 @@ export class ShelfView extends ItemView {
         // 2. Render each shelf group
         const sortedShelfNames = Object.keys(shelves).sort();
 
+        // Use a fragment to avoid multiple layout shifts and satisfy linter
+        const fragment = document.createDocumentFragment();
         for (const shelfName of sortedShelfNames) {
             const shelfBooks = shelves[shelfName];
             if (shelfBooks) {
-                this.renderShelf(content, shelfName, shelfBooks);
+                this.renderShelf(fragment, shelfName, shelfBooks);
             }
         }
 
         // 3. Render unshelved books
         if (noShelf.length > 0) {
-            this.renderShelf(content, 'Unshelved', noShelf);
+            this.renderShelf(fragment, 'Unshelved', noShelf);
         }
+        content.appendChild(fragment);
     }
 
-    private renderShelf(container: HTMLElement, shelfName: string, books: TFile[]) {
-        const shelfContainer = container.createEl('div', { cls: 'tree-item nav-folder' });
+    private renderShelf(parent: DocumentFragment | HTMLElement, shelfName: string, books: TFile[]) {
+        const shelfContainer = parent.createEl('div', { cls: 'tree-item nav-folder' });
 
         // Shelf Header
         const header = shelfContainer.createEl('div', { cls: 'tree-item-self is-clickable nav-folder-title' });
@@ -101,19 +113,21 @@ export class ShelfView extends ItemView {
         // Book List
         const children = shelfContainer.createEl('div', { cls: 'tree-item-children nav-folder-children' });
 
+        const bookFragment = document.createDocumentFragment();
         for (const book of books) {
             const cache = this.app.metadataCache.getFileCache(book);
-            const title = cache?.frontmatter?.['title'] || book.basename;
+            const frontmatter = cache?.frontmatter as unknown as BookFrontmatter | undefined;
+            const title = frontmatter?.title || book.basename;
 
-            const bookEl = children.createEl('div', { cls: 'tree-item nav-file' });
+            const bookEl = bookFragment.createEl('div', { cls: 'tree-item nav-file' });
             const bookTitle = bookEl.createEl('div', { cls: 'tree-item-self is-clickable nav-file-title' });
             bookTitle.createEl('div', { cls: 'tree-item-inner nav-file-title-content', text: title });
 
             // Click to open the note
-            bookTitle.onclick = async (e) => {
-                const leaf = this.app.workspace.getLeaf(e.ctrlKey || e.metaKey);
-                await leaf.openFile(book);
+            bookTitle.onclick = (e) => {
+                void this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(book);
             };
         }
+        children.appendChild(bookFragment);
     }
 }

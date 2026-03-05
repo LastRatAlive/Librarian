@@ -1,36 +1,151 @@
-/*
- * Author styling for suggestion modal 
+/* 
+ * Stats View Styling
  */
-.librarian-suggestion-author {
-    color: var(--text-muted);
+.librarian-stats-view {
+    padding: 0 15px;
+}
+
+.librarian-stat-card-container {
+    margin-bottom: 12px;
+}
+
+.librarian-stat-card {
+    background-color: var(--background-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.librarian-stat-card:hover {
+    background-color: var(--background-secondary-alt);
+}
+
+.librarian-stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--text-accent);
+    line-height: 1.1;
+}
+
+.librarian-stat-subvalue {
     font-size: 0.8em;
-    display: block;
+    color: var(--text-muted);
     margin-top: 2px;
 }
 
-/*
- * Button styling
- */
-.librarian-button-container button {
-    cursor: pointer;
+.librarian-stat-label {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-top: 4px;
+}
+
+.librarian-stat-drilldown {
+    display: none;
+    padding: 10px 12px;
+    font-size: 0.85em;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--background-modifier-border);
+    border-top: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    background-color: var(--background-primary);
+}
+
+.librarian-stat-card.is-open {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+}
+
+.librarian-search-container {
+    margin-bottom: 10px;
+}
+
+.librarian-search-input {
+    width: 100%;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.librarian-stat-drilldown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.librarian-stat-drilldown li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--background-modifier-border-focus);
+}
+
+.librarian-stat-drilldown .internal-link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70%;
+}
+
+.librarian-stat-drilldown .subtext {
+    color: var(--text-muted);
     font-size: 0.9em;
 }
 
+.librarian-show-more {
+    width: 100%;
+    margin-top: 8px;
+}
+
 /* 
- * Shelf View Styling 
- * Borrowing from native Obsidian .nav-folder and .nav-file classes
+ * Button Layout
  */
-
-.librarian-shelf-view .nav-folder-title {
-    padding-left: 8px;
+.librarian-button-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
 }
 
-.librarian-shelf-view .nav-file-title {
-    padding-left: 20px;
+.librarian-shelf-view {
+    margin-top: 10px;
 }
 
-.librarian-shelf-view .tree-item-inner {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+body.is-mobile .librarian-button-container {
+    gap: 4px;
+    padding: 0 5px;
+}
+
+/* 
+ * Settings Styling
+ */
+.librarian-settings-intro {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.librarian-settings-template-area {
+    height: 300px;
+    width: 100%;
+}
+
+.librarian-view-header {
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-bold);
+    color: var(--text-normal);
+}
+
+.is-hidden {
+    display: none !important;
+}
+
+.librarian-notice-margin {
+    margin-top: 8px;
 }

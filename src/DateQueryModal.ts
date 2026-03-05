@@ -1,4 +1,4 @@
-import { App, Modal, Setting, TFile, Notice } from 'obsidian';
+import { App, Modal, Setting, Notice } from 'obsidian';
 import LibrarianPlugin from './main';
 import { getBooksActiveOnDate } from './BookUtils';
 
@@ -16,13 +16,13 @@ export class DateQueryModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
 
-        contentEl.createEl('h2', { text: 'What was I reading?' });
+        contentEl.createEl('h2', { text: 'What was I reading' });
 
         new Setting(contentEl)
-            .setName('Select Date')
+            .setName('Select date')
             .setDesc('Find books active on this day.')
             .addText(text => text
-                .setPlaceholder('YYYY-MM-DD')
+                .setPlaceholder('Date')
                 .setValue(this.queryDate)
                 .onChange(value => {
                     this.queryDate = value;
@@ -46,22 +46,22 @@ export class DateQueryModal extends Modal {
 
         const selectedDate = new Date(this.queryDate);
         if (isNaN(selectedDate.getTime())) {
-            new Notice('Invalid date format. Use YYYY-MM-DD');
+            new Notice('Invalid date format');
             return;
         }
 
         const matches = getBooksActiveOnDate(this.app, this.queryDate);
 
         if (matches.length === 0) {
-            resultsEl.createEl('p', { text: `No reading history found for ${this.queryDate}.` });
+            resultsEl.createEl('p', { text: `No reading history found for ${this.queryDate}` });
         } else {
-            resultsEl.createEl('h3', { text: `Results for ${this.queryDate}:` });
+            resultsEl.createEl('div', { text: `Results for ${this.queryDate}:`, cls: 'librarian-query-results-header' });
             const list = resultsEl.createEl('ul');
             for (const file of matches) {
                 const li = list.createEl('li');
                 const link = li.createEl('a', { text: file.basename, cls: 'is-clickable' });
                 link.onclick = () => {
-                    this.app.workspace.getLeaf(false).openFile(file);
+                    void this.app.workspace.getLeaf(false).openFile(file);
                     this.close();
                 };
             }

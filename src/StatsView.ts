@@ -16,7 +16,7 @@ export class StatsView extends ItemView {
     }
 
     getDisplayText(): string {
-        return 'Reading Stats';
+        return 'Reading stats';
     }
 
     getIcon(): string {
@@ -24,8 +24,8 @@ export class StatsView extends ItemView {
     }
 
     async onOpen() {
-        this.registerEvent(this.app.metadataCache.on('resolved', () => this.render()));
-        this.render();
+        this.registerEvent(this.app.metadataCache.on('resolved', () => void this.render()));
+        void this.render();
     }
 
     async render() {
@@ -34,11 +34,9 @@ export class StatsView extends ItemView {
         container.empty();
 
         const header = container.createEl('div', { cls: 'nav-header' });
-        header.createEl('h3', { text: 'Reading Stats', cls: 'nav-folder-title' });
+        header.createEl('div', { text: 'Reading stats', cls: 'nav-folder-title librarian-view-header' });
 
-        const content = container.createEl('div', { cls: 'nav-folder librarian-stats-view' });
-        content.style.marginTop = '10px';
-        content.style.padding = '0 15px';
+        const content = container.createEl('div', { cls: 'librarian-stats-view' });
 
         const allFiles = this.app.vault.getMarkdownFiles();
 
@@ -56,8 +54,11 @@ export class StatsView extends ItemView {
             if (frontmatter?.['type'] === 'book') {
                 allBooks.push(file);
 
-                const readCount = parseInt(frontmatter['readCount']) || 0;
-                const pages = parseInt(frontmatter['pages']) || 0;
+                const readCountStr = frontmatter['readCount'] ? String(frontmatter['readCount']) : '0';
+                const pagesStr = frontmatter['pages'] ? String(frontmatter['pages']) : '0';
+
+                const readCount = parseInt(readCountStr) || 0;
+                const pages = parseInt(pagesStr) || 0;
 
                 if (readCount > 0) {
                     readBooks.push(file);
@@ -75,13 +76,13 @@ export class StatsView extends ItemView {
         }
 
         // Render Stats
-        this.renderStatCard(content, "Total Books in Library", allBooks.length.toString(), allBooks);
-        this.renderStatCard(content, "Books Read", readBooks.length.toString(), readBooks);
-        this.renderStatCard(content, "Currently Reading", currentlyReading.length.toString(), currentlyReading);
+        this.renderStatCard(content, "Total books in library", allBooks.length.toString(), allBooks);
+        this.renderStatCard(content, "Books read", readBooks.length.toString(), readBooks);
+        this.renderStatCard(content, "Currently reading", currentlyReading.length.toString(), currentlyReading);
 
         // Custom Pages Render (Sorted by page count)
         const sortedPages = pagesData.sort((a, b) => b.pages - a.pages);
-        this.renderStatCard(content, "Total Pages Read", totalPagesRead.toLocaleString(), sortedPages.map(p => p.file), (file) => {
+        this.renderStatCard(content, "Total pages read", totalPagesRead.toLocaleString(), sortedPages.map(p => p.file), (file) => {
             const data = sortedPages.find(sp => sp.file === file);
             return data ? `${data.pages} p.` : '';
         }, totalUniquePagesRead.toLocaleString());
@@ -89,72 +90,31 @@ export class StatsView extends ItemView {
 
     private renderStatCard(container: HTMLElement, label: string, value: string, files: TFile[], subtextProvider?: (file: TFile) => string, subValue?: string) {
         const cardContainer = container.createEl('div', { cls: 'librarian-stat-card-container' });
-        cardContainer.style.marginBottom = '12px';
 
-        const card = cardContainer.createEl('div', { cls: 'is-clickable' });
-        card.style.backgroundColor = 'var(--background-secondary)';
-        card.style.padding = '15px';
-        card.style.borderRadius = '8px';
-        card.style.border = '1px solid var(--background-modifier-border)';
-        card.style.transition = 'background-color 0.2s ease';
+        const card = cardContainer.createEl('div', { cls: 'librarian-stat-card' });
 
-        // Hover effect via JS since we can't easily add pseudo-classes here
-        card.onmouseenter = () => card.style.backgroundColor = 'var(--background-secondary-alt)';
-        card.onmouseleave = () => card.style.backgroundColor = 'var(--background-secondary)';
-
-        const valueEl = card.createEl('div', { text: value });
-        valueEl.style.fontSize = '2em';
-        valueEl.style.fontWeight = 'bold';
-        valueEl.style.color = 'var(--text-accent)';
-        valueEl.style.lineHeight = '1.1';
+        card.createEl('div', { text: value, cls: 'librarian-stat-value' });
 
         if (subValue) {
-            const subValueEl = card.createEl('div', { text: `(${subValue} unique)` });
-            subValueEl.style.fontSize = '0.8em';
-            subValueEl.style.color = 'var(--text-muted)';
-            subValueEl.style.marginTop = '2px';
+            card.createEl('div', { text: `(${subValue} unique)`, cls: 'librarian-stat-subvalue' });
         }
 
-        const labelEl = card.createEl('div', { text: label });
-        labelEl.style.color = 'var(--text-muted)';
-        labelEl.style.fontSize = '0.9em';
-        labelEl.style.marginTop = '4px';
+        card.createEl('div', { text: label, cls: 'librarian-stat-label' });
 
         // Drill-down list (hidden by default)
-        const listEl = cardContainer.createEl('div', { cls: 'librarian-stat-drilldown' });
-        listEl.style.display = 'none';
-        listEl.style.padding = '10px 12px';
-        listEl.style.fontSize = '0.85em';
-        listEl.style.maxHeight = '400px';
-        listEl.style.overflowY = 'auto';
-        listEl.style.border = '1px solid var(--background-modifier-border)';
-        listEl.style.borderTop = 'none';
-        listEl.style.borderBottomLeftRadius = '8px';
-        listEl.style.borderBottomRightRadius = '8px';
-        listEl.style.backgroundColor = 'var(--background-primary)';
+        const listEl = cardContainer.createEl('div', { cls: 'librarian-stat-drilldown is-hidden' });
 
         // Search Bar
         const searchContainer = listEl.createDiv({ cls: 'librarian-search-container' });
-        searchContainer.style.marginBottom = '10px';
         const searchInput = searchContainer.createEl('input', {
             type: 'text',
-            placeholder: `Search ${label}...`,
+            placeholder: `Search ${label.toLowerCase()}...`,
             cls: 'librarian-search-input'
         });
-        searchInput.style.width = '100%';
-        searchInput.style.padding = '4px 8px';
-        searchInput.style.borderRadius = '4px';
-        searchInput.style.border = '1px solid var(--background-modifier-border)';
 
         const ul = listEl.createEl('ul');
-        ul.style.listStyle = 'none';
-        ul.style.padding = '0';
-        ul.style.margin = '0';
 
-        const showMoreBtn = listEl.createEl('button', { cls: 'librarian-show-more' });
-        showMoreBtn.style.width = '100%';
-        showMoreBtn.style.marginTop = '8px';
-        showMoreBtn.style.display = 'none';
+        const showMoreBtn = listEl.createEl('button', { cls: 'librarian-show-more is-hidden' });
 
         let showAll = false;
         let currentFilter = "";
@@ -167,41 +127,31 @@ export class StatsView extends ItemView {
             const limit = 50;
             const toShow = (showAll || count <= limit) ? filtered : filtered.slice(0, limit);
 
+            const fragment = document.createDocumentFragment();
             for (const file of toShow) {
-                const li = ul.createEl('li');
-                li.style.display = 'flex';
-                li.style.justifyContent = 'space-between';
-                li.style.alignItems = 'center';
-                li.style.marginBottom = '6px';
-                li.style.paddingBottom = '4px';
-                li.style.borderBottom = '1px solid var(--background-modifier-border-focus)';
+                const li = fragment.createEl('li');
 
                 const link = li.createEl('a', { text: file.basename, cls: 'internal-link' });
-                link.style.overflow = 'hidden';
-                link.style.textOverflow = 'ellipsis';
-                link.style.whiteSpace = 'nowrap';
-                link.style.maxWidth = '70%';
 
                 link.onclick = (e) => {
-                    this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(file);
+                    void this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(file);
                 };
 
                 if (subtextProvider) {
-                    const subtext = li.createEl('span', { text: subtextProvider(file) });
-                    subtext.style.color = 'var(--text-muted)';
-                    subtext.style.fontSize = '0.9em';
+                    li.createEl('span', { text: subtextProvider(file), cls: 'subtext' });
                 }
             }
+            ul.appendChild(fragment);
 
             if (!showAll && count > limit) {
-                showMoreBtn.style.display = 'block';
+                showMoreBtn.removeClass('is-hidden');
                 showMoreBtn.setText(`Show all (${count - limit} more)`);
                 showMoreBtn.onclick = () => {
                     showAll = true;
                     updateList();
                 };
             } else {
-                showMoreBtn.style.display = 'none';
+                showMoreBtn.addClass('is-hidden');
             }
 
             if (count === 0) {
@@ -219,18 +169,9 @@ export class StatsView extends ItemView {
 
         // Toggle logic
         card.onclick = () => {
-            const isHidden = listEl.style.display === 'none';
-            listEl.style.display = isHidden ? 'block' : 'none';
-
-            if (isHidden) {
-                card.style.borderBottomLeftRadius = '0';
-                card.style.borderBottomRightRadius = '0';
-                card.style.borderBottom = 'none';
-            } else {
-                card.style.borderBottomLeftRadius = '8px';
-                card.style.borderBottomRightRadius = '8px';
-                card.style.borderBottom = '1px solid var(--background-modifier-border)';
-            }
+            const isHidden = listEl.hasClass('is-hidden');
+            listEl.toggleClass('is-hidden', !isHidden);
+            card.toggleClass('is-open', isHidden);
         };
     }
 }
