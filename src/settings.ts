@@ -1,35 +1,35 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import { App, PluginSettingTab, Setting } from "obsidian";
+import LibrarianPlugin from "./main";
 
-export interface MyPluginSettings {
-	mySetting: string;
+export interface LibrarianSettings {
+	defaultBookFolder: string;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+export const DEFAULT_SETTINGS: LibrarianSettings = {
+	defaultBookFolder: '/'
 }
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+export class LibrarianSettingTab extends PluginSettingTab {
+	plugin: LibrarianPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: LibrarianPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
+			.setName('Default Book Folder')
+			.setDesc('Folder where new books will be saved. Must exist.')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+				.setPlaceholder('Books/')
+				.setValue(this.plugin.settings.defaultBookFolder)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.defaultBookFolder = value;
 					await this.plugin.saveSettings();
 				}));
 	}

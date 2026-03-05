@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "obsidian-librarian",
+	"name": "Librarian",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Book tracking native to your vault. Like Goodreads, but in Obsidian.",
+	"author": "Keegan",
+	"authorUrl": "",
 	"isDesktopOnly": false
 }

@@ -1,99 +1,211 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { App, MarkdownView, Plugin, TFile, Notice, WorkspaceLeaf } from 'obsidian';
+import { LibrarianSettings, DEFAULT_SETTINGS, LibrarianSettingTab } from './settings';
+import { BookSearchModal } from './BookSearchModal';
+import { ShelfView, SHELF_VIEW_TYPE } from './ShelfView';
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class LibrarianPlugin extends Plugin {
+	settings: LibrarianSettings;
 
 	async onload() {
-		await this.loadSettings();
+		console.log('Loading Librarian plugin');
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		// Check when a file is opened
+		this.registerEvent(
+			this.app.workspace.on('file-open', (file: TFile | null) => {
+				this.updateActiveView(file);
+			})
+		);
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+		// Also check when metadata finishes processing (fixes new book creation delay)
+		this.registerEvent(
+			this.app.metadataCache.on('changed', (file: TFile) => {
+				const activeFile = this.app.workspace.getActiveFile();
+				if (activeFile && file.path === activeFile.path) {
+					this.updateActiveView(file);
 				}
-				return false;
+			})
+		);
+
+		// Also check the currently active file on load
+		this.app.workspace.onLayoutReady(() => {
+			this.updateActiveView(this.app.workspace.getActiveFile());
+		});
+
+		this.addCommand({
+			id: 'librarian-open-shelves',
+			name: 'Open Bookshelves',
+			callback: () => {
+				this.activateShelfView();
 			}
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		// Load settings and add settings tab
+		await this.loadSettings();
+		this.addSettingTab(new LibrarianSettingTab(this.app, this));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
+		// Search and Add Book Command
+		this.addCommand({
+			id: 'librarian-add-book',
+			name: 'Add Book (Search Open Library)',
+			callback: () => {
+				new BookSearchModal(this.app, this).open();
+			}
 		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		// Fallback commands for users who prefer Command Palette
+		this.addCommand({
+			id: 'librarian-start-reading',
+			name: 'Start Reading (Update Frontmatter)',
+			checkCallback: (checking: boolean) => this.runCommand(checking, 'start')
+		});
 
+		this.addCommand({
+			id: 'librarian-finish-reading',
+			name: 'Finish Reading (Update Frontmatter)',
+			checkCallback: (checking: boolean) => this.runCommand(checking, 'finish')
+		});
+
+		this.addCommand({
+			id: 'librarian-dnf',
+			name: 'Didn\'t Finish Reading (Update Frontmatter)',
+			checkCallback: (checking: boolean) => this.runCommand(checking, 'dnf')
+		});
 	}
 
 	onunload() {
+		console.log('Unloading Librarian plugin');
+		this.removeButtonsFromAllViews();
+	}
+
+	private updateActiveView(file: TFile | null) {
+		this.removeButtonsFromAllViews(); // Clear old buttons first
+
+		if (!file) return;
+
+		const cache = this.app.metadataCache.getFileCache(file);
+		const frontmatter = cache?.frontmatter;
+
+		// Only show on books
+		if (frontmatter?.['type'] === 'book') {
+			this.injectButtons(file, frontmatter);
+		}
+	}
+
+	private injectButtons(file: TFile, frontmatter: any) {
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view) return;
+
+		const container = view.containerEl.querySelector('.view-header');
+		if (!container) return;
+
+		// Create our button container in the header
+		const buttonContainer = container.createEl('div', { cls: 'librarian-button-container' });
+		buttonContainer.style.display = 'flex';
+		buttonContainer.style.gap = '8px';
+		buttonContainer.style.alignItems = 'center';
+		buttonContainer.style.padding = '0 10px';
+
+		const currentlyReading = frontmatter['currentlyReading'] === true || frontmatter['currentlyReading'] === 'true';
+
+		if (!currentlyReading) {
+			const startBtn = buttonContainer.createEl('button', { text: '▶ Start Reading' });
+			startBtn.onclick = () => this.updateReadingStatus(file, 'start');
+		} else {
+			const finishBtn = buttonContainer.createEl('button', { text: '✅ Finished' });
+			finishBtn.onclick = () => this.updateReadingStatus(file, 'finish');
+
+			const dnfBtn = buttonContainer.createEl('button', { text: '❌ Didn\'t Finish' });
+			dnfBtn.onclick = () => this.updateReadingStatus(file, 'dnf');
+		}
+	}
+
+	private removeButtonsFromAllViews() {
+		document.querySelectorAll('.librarian-button-container').forEach(el => el.remove());
+	}
+
+	private runCommand(checking: boolean, action: 'start' | 'finish' | 'dnf'): boolean {
+		const file = this.app.workspace.getActiveFile();
+		if (!file) return false;
+
+		const cache = this.app.metadataCache.getFileCache(file);
+		if (cache?.frontmatter?.['type'] === 'book') {
+			if (!checking) {
+				this.updateReadingStatus(file, action);
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private async updateReadingStatus(file: TFile, action: 'start' | 'finish' | 'dnf') {
+		await this.app.fileManager.processFrontMatter(file, (fm) => {
+			const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+			if (action === 'start') {
+				fm['currentlyReading'] = true;
+
+				// Increment read count
+				const currentCount = parseInt(fm['readCount']) || 0;
+				fm['readCount'] = currentCount + 1;
+
+				new Notice('Started reading!');
+			}
+			else if (action === 'finish') {
+				fm['currentlyReading'] = false;
+				fm['lastRead'] = today;
+				fm['dateRead'] = today; // Also update dateRead to match
+
+				new Notice('Finished reading!');
+			}
+			else if (action === 'dnf') {
+				fm['currentlyReading'] = false;
+
+				// Decrement read count since we're giving up
+				const currentCount = parseInt(fm['readCount']) || 0;
+				if (currentCount > 0) {
+					fm['readCount'] = currentCount - 1;
+				}
+
+				new Notice('Marked as Didn\'t Finish.');
+			}
+		});
+
+		// Buttons will automatically trigger a refresh because the file change triggers Obsidian events,
+		// but we can manually invoke it to be safe and responsive:
+		setTimeout(() => {
+			this.updateActiveView(file);
+		}, 100);
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+	async activateShelfView() {
+		const { workspace } = this.app;
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(SHELF_VIEW_TYPE);
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+		if (leaves.length > 0) {
+			// A leaf with our view already exists, use that
+			leaf = leaves[0];
+		} else {
+			// Our view could not be found in the workspace, create a new leaf in the right sidebar
+			const rightLeaf = workspace.getRightLeaf(false);
+			if (rightLeaf) {
+				leaf = rightLeaf;
+				await leaf.setViewState({ type: SHELF_VIEW_TYPE, active: true });
+			}
+		}
+
+		// "Reveal" the leaf in case it is in a collapsed sidebar
+		if (leaf) {
+			workspace.revealLeaf(leaf);
+		}
 	}
 }
