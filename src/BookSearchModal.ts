@@ -99,22 +99,21 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
             }
         };
 
-        addFM('type', 'book');
+        fmLines.push('type: book');
         addFM('title', book.title);
         addFM('englishTitle', book.title);
         addFM('year', year);
         addFM('dataSource', 'OpenLibrary');
         addFM('id', book.key.replace('/works/', ''));
         addFM('author', author);
-        addFM('pages', pages);
+        fmLines.push(`pages: ${pages}`);
         addFM('image', cover);
         addFM('isbn', isbn);
         addFM('tags', '');
         addFM('dateAdded', dateAdded);
-        addFM('readCount', 0);
-        addFM('currentlyReading', false);
+        fmLines.push('readCount: 0');
+        fmLines.push('currentlyReading: false');
         addFM('myRating', 0);
-        addFM('shelf', '[]');
 
         if (this.plugin.settings.additionalProperties && this.plugin.settings.additionalProperties.trim()) {
             fmLines.push(this.plugin.settings.additionalProperties.trim());
@@ -139,7 +138,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
             body = body.split(key).join(value);
         }
 
-        const finalContent = body.trim().startsWith("---") ? body : `${generatedFM}\n${body}`;
+        const finalContent = `${generatedFM}\n${body}`;
 
         // Normalize folder path (remove leading/trailing slashes)
         let folderPath = this.plugin.settings.defaultBookFolder || '';

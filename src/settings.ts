@@ -13,20 +13,7 @@ export interface LibrarianSettings {
 
 export const DEFAULT_SETTINGS: LibrarianSettings = {
 	defaultBookFolder: '/',
-	bookTemplate: `---
-type: book
-title: "{{title}}"
-author: "{{author}}"
-pages: {{pages}}
-year: "{{year}}"
-image: "{{cover}}"
-isbn: "{{isbn}}"
-tags: ""
-dateAdded: {{dateAdded}}
-readCount: 0
-currentlyReading: false
----
-# {{title}} - {{author}}
+	bookTemplate: `# {{title}} - {{author}}
 
 {{cover_image}}
 
@@ -130,13 +117,13 @@ export class LibrarianSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		containerEl.createEl('p', {
-			text: 'Customize the initial content of your book notes. Use {{title}}, {{author}}, {{pages}}, {{year}}, {{cover}}, {{cover_image}}, {{isbn}}, {{id}}, {{dateAdded}} placeholders.',
+			text: 'Customize the body content of your book notes. Note: Frontmatter is managed automatically via the property settings below.',
 			cls: 'librarian-settings-intro'
 		});
 
 		new Setting(containerEl)
-			.setName('Note template')
-			.setDesc('The skeleton for every new book note.')
+			.setName('Note body template')
+			.setDesc('The template for the content below the frontmatter.')
 			.addTextArea(text => {
 				text.setPlaceholder('Template text...')
 					.setValue(this.plugin.settings.bookTemplate)
@@ -152,12 +139,29 @@ export class LibrarianSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		containerEl.createEl('p', {
-			text: 'Select which core properties to include in new books:',
+			text: 'The following core properties are required for the plugin to function (stats, shelving, and reading status) and are always included:',
 			cls: 'librarian-settings-intro'
 		});
 
-		const properties = Object.keys(this.plugin.settings.enabledProperties);
-		for (const prop of properties) {
+		const coreProps = ['type', 'pages', 'readCount', 'currentlyReading'];
+		coreProps.forEach(prop => {
+			new Setting(containerEl)
+				.setName(prop)
+				.setDesc('Core plugin property')
+				.addToggle(toggle => toggle
+					.setValue(true)
+					.setDisabled(true));
+		});
+
+		containerEl.createEl('p', {
+			text: 'You can toggle the following optional metadata properties:',
+			cls: 'librarian-settings-intro'
+		});
+
+		const allProps = Object.keys(this.plugin.settings.enabledProperties);
+		const optionalProps = allProps.filter(p => !coreProps.includes(p));
+
+		for (const prop of optionalProps) {
 			new Setting(containerEl)
 				.setName(prop)
 				.addToggle(toggle => toggle

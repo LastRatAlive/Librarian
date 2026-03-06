@@ -77,20 +77,21 @@ hideHeader: true
 
 ### Custom Templates
 
-Librarian allows you to define a "Skeleton" for new book notes in the settings. You can use placeholders that the plugin will populate:
+Librarian allows you to define a "Note body template" in the settings. This template controls the content below the automatically managed frontmatter. You can use placeholders that the plugin will populate:
 
 ```markdown
-# {{title}}
-By {{author}}
+# {{title}} - {{author}}
 
-> [!info] Metadata
-> **ISBN**: {{isbn}}
-> **Pages**: {{pages}}
+{{cover_image}}
 
-## My Review
-(Write your thoughts here...)
+## Summary
+Write your thoughts here you fool!
 
 ## Quotes
+> Add quotes here you fool!
+
+## Notes
+- anything else you fool!
 ```
 
 ## Installation
