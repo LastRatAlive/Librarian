@@ -141,6 +141,15 @@ body.is-mobile .librarian-button-container {
     color: var(--text-normal);
 }
 
+.librarian-shelf-count {
+    margin-left: 8px;
+    font-size: 0.8em;
+    color: var(--text-muted);
+    background-color: var(--background-secondary-alt);
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
 .is-hidden {
     display: none !important;
 }

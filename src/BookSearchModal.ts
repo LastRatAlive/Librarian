@@ -1,4 +1,4 @@
-import { App, Notice, SuggestModal, requestUrl } from 'obsidian';
+import { App, Notice, SuggestModal, requestUrl, TFile } from 'obsidian';
 import LibrarianPlugin from './main';
 import { DEFAULT_SETTINGS } from './settings';
 
@@ -122,6 +122,17 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         const generatedFM = fmLines.join("\n");
 
         let body = this.plugin.settings.bookTemplate || DEFAULT_SETTINGS.bookTemplate;
+
+        // Try to load from template file if path is set
+        if (this.plugin.settings.templatePath) {
+            const templateFile = this.app.vault.getAbstractFileByPath(this.plugin.settings.templatePath);
+            if (templateFile instanceof TFile) {
+                body = await this.app.vault.read(templateFile);
+            } else {
+                new Notice(`Template file not found at: ${this.plugin.settings.templatePath}. Using fallback template.`);
+            }
+        }
+
         const placeholders: { [key: string]: string } = {
             '{{title}}': book.title,
             '{{author}}': author,

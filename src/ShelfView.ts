@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
+import { ItemView, WorkspaceLeaf, TFile, setIcon } from 'obsidian';
 import LibrarianPlugin from './main';
 
 export const SHELF_VIEW_TYPE = 'librarian-shelf-view';
@@ -11,6 +11,7 @@ interface BookFrontmatter {
 
 export class ShelfView extends ItemView {
     plugin: LibrarianPlugin;
+    collapsedShelves: Set<string> = new Set();
 
     constructor(leaf: WorkspaceLeaf, plugin: LibrarianPlugin) {
         super(leaf);
@@ -33,10 +34,6 @@ export class ShelfView extends ItemView {
         // Re-render when files change
         this.registerEvent(this.app.metadataCache.on('resolved', () => void this.render()));
         void this.render();
-    }
-
-    async onClose() {
-        // Cleanup if needed
     }
 
     async render() {
@@ -87,7 +84,7 @@ export class ShelfView extends ItemView {
         // 2. Render each shelf group
         const sortedShelfNames = Object.keys(shelves).sort();
 
-        // Use a fragment to avoid multiple layout shifts and satisfy linter
+        // Use a fragment
         const fragment = document.createDocumentFragment();
         for (const shelfName of sortedShelfNames) {
             const shelfBooks = shelves[shelfName];
@@ -104,14 +101,26 @@ export class ShelfView extends ItemView {
     }
 
     private renderShelf(parent: DocumentFragment | HTMLElement, shelfName: string, books: TFile[]) {
-        const shelfContainer = parent.createEl('div', { cls: 'tree-item nav-folder' });
+        const isCollapsed = this.collapsedShelves.has(shelfName);
+        const shelfContainer = parent.createEl('div', { 
+            cls: `tree-item nav-folder ${isCollapsed ? 'is-collapsed' : ''}` 
+        });
 
         // Shelf Header
         const header = shelfContainer.createEl('div', { cls: 'tree-item-self is-clickable nav-folder-title' });
-        header.createEl('div', { cls: 'tree-item-inner nav-folder-title-content', text: `${shelfName} (${books.length})` });
+        
+        // Collapse Icon
+        const iconContainer = header.createEl('div', { cls: 'tree-item-icon collapse-icon nav-folder-collapse-indicator' });
+        setIcon(iconContainer, 'right-triangle');
 
-        // Book List
-        const children = shelfContainer.createEl('div', { cls: 'tree-item-children nav-folder-children' });
+        const titleEl = header.createEl('div', { cls: 'tree-item-inner nav-folder-title-content' });
+        titleEl.createEl('span', { text: shelfName });
+        titleEl.createEl('span', { text: `${books.length}`, cls: 'nav-folder-tag librarian-shelf-count' });
+
+        // Book List - use is-hidden to control visibility manually
+        const children = shelfContainer.createEl('div', { 
+            cls: `tree-item-children nav-folder-children ${isCollapsed ? 'is-hidden' : ''}` 
+        });
 
         const bookFragment = document.createDocumentFragment();
         for (const book of books) {
@@ -125,9 +134,24 @@ export class ShelfView extends ItemView {
 
             // Click to open the note
             bookTitle.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 void this.app.workspace.getLeaf(e.ctrlKey || e.metaKey).openFile(book);
             };
         }
         children.appendChild(bookFragment);
+
+        // Toggle logic
+        header.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (this.collapsedShelves.has(shelfName)) {
+                this.collapsedShelves.delete(shelfName);
+            } else {
+                this.collapsedShelves.add(shelfName);
+            }
+            void this.render();
+        };
     }
 }

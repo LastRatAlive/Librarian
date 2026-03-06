@@ -1,8 +1,9 @@
-import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, TFile, TFolder, AbstractInputSuggest } from "obsidian";
 import LibrarianPlugin from "./main";
 
 export interface LibrarianSettings {
 	defaultBookFolder: string;
+	templatePath: string;
 	bookTemplate: string;
 	showShelfRibbon: boolean;
 	showStatsRibbon: boolean;
@@ -13,6 +14,7 @@ export interface LibrarianSettings {
 
 export const DEFAULT_SETTINGS: LibrarianSettings = {
 	defaultBookFolder: '/',
+	templatePath: '',
 	bookTemplate: `# {{title}} - {{author}}
 
 {{cover_image}}
@@ -68,13 +70,15 @@ export class LibrarianSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Default book folder')
 			.setDesc('Folder where new books will be saved. Must exist.')
-			.addText(text => text
-				.setPlaceholder('Books/')
-				.setValue(this.plugin.settings.defaultBookFolder)
-				.onChange((value) => {
-					this.plugin.settings.defaultBookFolder = value;
-					void this.plugin.saveSettings();
-				}));
+			.addText(text => {
+				text.setPlaceholder('Books/')
+					.setValue(this.plugin.settings.defaultBookFolder)
+					.onChange((value) => {
+						this.plugin.settings.defaultBookFolder = value;
+						void this.plugin.saveSettings();
+					});
+				new FolderSuggest(this.app, text.inputEl as HTMLInputElement);
+			});
 
 		new Setting(containerEl)
 			.setName('Interface adjustments')
@@ -117,22 +121,38 @@ export class LibrarianSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		containerEl.createEl('p', {
-			text: 'Customize the body content of your book notes. Note: frontmatter is managed automatically via the property settings below.',
+			text: 'Choose a markdown file in your vault to use as the body for new book notes. Frontmatter is managed automatically via the property settings below.',
 			cls: 'librarian-settings-intro'
 		});
 
 		new Setting(containerEl)
-			.setName('Note body template')
-			.setDesc('The template for the content below the frontmatter.')
-			.addTextArea(text => {
-				text.setPlaceholder('Template text...')
-					.setValue(this.plugin.settings.bookTemplate)
-					.onChange((value) => {
-						this.plugin.settings.bookTemplate = value;
-						void this.plugin.saveSettings();
+			.setName('Template file')
+			.setDesc('Path to the markdown file to use as a template.')
+			.addText(text => {
+				text.setPlaceholder('templates/book-template.md')
+					.setValue(this.plugin.settings.templatePath)
+					.onChange(async (value) => {
+						this.plugin.settings.templatePath = value;
+						await this.plugin.saveSettings();
 					});
-				text.inputEl.addClass('librarian-settings-template-area');
+				new FileSuggest(this.app, text.inputEl as HTMLInputElement);
 			});
+
+		const placeholderContainer = containerEl.createDiv({ cls: 'librarian-placeholder-list' });
+		placeholderContainer.createEl('p', { text: 'Available placeholders for your template file:', cls: 'librarian-settings-intro' });
+		const ul = placeholderContainer.createEl('ul');
+		const placeholders = [
+			'{{title}} - The title of the book',
+			'{{author}} - The primary author',
+			'{{pages}} - Page count',
+			'{{year}} - Publication year',
+			'{{cover}} - URL of the cover image',
+			'{{cover_image}} - Formatted markdown image ![]()',
+			'{{isbn}} - ISBN-10 or ISBN-13',
+			'{{id}} - Open Library Work ID',
+			'{{dateAdded}} - Today\'s date (YYYY-MM-DD)'
+		];
+		placeholders.forEach(p => ul.createEl('li', { text: p }));
 
 		new Setting(containerEl)
 			.setName('Property management')
@@ -182,5 +202,78 @@ export class LibrarianSettingTab extends PluginSettingTab {
 					this.plugin.settings.additionalProperties = value;
 					void this.plugin.saveSettings();
 				}));
+	}
+}
+
+class FileSuggest extends AbstractInputSuggest<TFile> {
+	inputEl: HTMLInputElement;
+
+	constructor(app: App, inputEl: HTMLInputElement) {
+		super(app, inputEl);
+		this.inputEl = inputEl;
+	}
+
+	getSuggestions(inputStr: string): TFile[] {
+		const abstractFiles = this.app.vault.getAllLoadedFiles();
+		const files: TFile[] = [];
+		const lowerCaseInputStr = inputStr.toLowerCase();
+
+		abstractFiles.forEach((file) => {
+			if (
+				file instanceof TFile &&
+				file.extension === 'md' &&
+				file.path.toLowerCase().includes(lowerCaseInputStr)
+			) {
+				files.push(file);
+			}
+		});
+
+		return files;
+	}
+
+	renderSuggestion(file: TFile, el: HTMLElement): void {
+		el.setText(file.path);
+	}
+
+	selectSuggestion(file: TFile): void {
+		this.inputEl.value = file.path;
+		this.inputEl.trigger('input');
+		this.close();
+	}
+}
+
+class FolderSuggest extends AbstractInputSuggest<TFolder> {
+	inputEl: HTMLInputElement;
+
+	constructor(app: App, inputEl: HTMLInputElement) {
+		super(app, inputEl);
+		this.inputEl = inputEl;
+	}
+
+	getSuggestions(inputStr: string): TFolder[] {
+		const abstractFiles = this.app.vault.getAllLoadedFiles();
+		const folders: TFolder[] = [];
+		const lowerCaseInputStr = inputStr.toLowerCase();
+
+		abstractFiles.forEach((file) => {
+			if (
+				file instanceof TFolder &&
+				file.path.toLowerCase().includes(lowerCaseInputStr)
+			) {
+				folders.push(file);
+			}
+		});
+
+		return folders;
+	}
+
+	renderSuggestion(folder: TFolder, el: HTMLElement): void {
+		el.setText(folder.path);
+	}
+
+	selectSuggestion(folder: TFolder): void {
+		this.inputEl.value = folder.path;
+		this.inputEl.trigger('input');
+		this.close();
 	}
 }
