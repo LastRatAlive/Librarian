@@ -59,17 +59,21 @@ readHistory:
 You can embed dynamic lists or quote aggregations into any note (e.g., your Daily Note) using the `librarian` code block.
 
 **Query reading history for a specific date:**
+````markdown
 ```librarian
 date: 2024-03-05
 hideHeader: false
 ```
+````
 
 **Aggregate quotes by tag:**
+````markdown
 ```librarian
 tag: philosophy
 limit: 5
 hideHeader: true
 ```
+````
 
 ### Custom Templates
 
