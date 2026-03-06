@@ -117,7 +117,7 @@ export class LibrarianSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		containerEl.createEl('p', {
-			text: 'Customize the body content of your book notes. Note: Frontmatter is managed automatically via the property settings below.',
+			text: 'Customize the body content of your book notes. Note: frontmatter is managed automatically via the property settings below.',
 			cls: 'librarian-settings-intro'
 		});
 
