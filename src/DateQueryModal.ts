@@ -18,7 +18,6 @@ export class DateQueryModal extends Modal {
 
         contentEl.createEl('h2', { text: 'What was being read' });
 
-
         new Setting(contentEl)
             .setName('Select date:')
             .setDesc('Find books active on this day.')

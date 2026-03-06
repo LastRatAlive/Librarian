@@ -222,13 +222,20 @@ export default class LibrarianPlugin extends Plugin {
 			});
 			if (Platform.isMobile) startBtn.setAttribute('aria-label', 'Start reading');
 			startBtn.onclick = () => void this.runCommand(false, 'start');
-		} else {
+		}
+		else {
 			const finishBtn = buttonContainer.createEl('button', {
 				text: Platform.isMobile ? '✔' : 'Finished',
 				cls: 'librarian-btn librarian-finish-btn'
 			});
 			if (Platform.isMobile) finishBtn.setAttribute('aria-label', 'Finished reading');
 			finishBtn.onclick = () => void this.runCommand(false, 'finish');
+			const dnfBtn = buttonContainer.createEl('button', {
+				text: Platform.isMobile ? '✖' : 'Didn\'t finish',
+				cls: 'librarian-btn librarian-dnf-btn'
+			});
+			if (Platform.isMobile) dnfBtn.setAttribute('aria-label', 'Didn\'t finish reading');
+			dnfBtn.onclick = () => void this.runCommand(false, 'dnf');
 		}
 
 		const shelfBtn = buttonContainer.createEl('button', {
@@ -313,13 +320,14 @@ export default class LibrarianPlugin extends Plugin {
 				fm['currentlyReading'] = true;
 				if (!fm['readHistory']) fm['readHistory'] = [];
 				fm['readHistory'].push({ start: today, end: "" });
+				const currentCount = parseInt(fm['readCount']?.toString() || '0') || 0;
+				fm['readCount'] = currentCount + 1;
 				new Notice('Started reading!');
 			}
 			else if (action === 'finish') {
 				fm['currentlyReading'] = false;
 				fm['dateRead'] = today;
-				const currentCount = parseInt(fm['readCount']?.toString() || '0') || 0;
-				fm['readCount'] = currentCount + 1;
+
 
 				// Update the latest readHistory session if it exists and lacks an end date
 				if (fm['readHistory'] && Array.isArray(fm['readHistory']) && fm['readHistory'].length > 0) {

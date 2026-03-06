@@ -1,98 +1,112 @@
-# The Librarian - Obsidian Plugin
+# Librarian for Obsidian
 
-A native, lightweight book tracking plugin for Obsidian. Think Goodreads, but your data stays in your vault.
+Librarian is a comprehensive book-tracking and library management plugin for Obsidian. It provides a local-first alternative to services like Goodreads by managing book metadata, reading progress, and personal libraries directly within your vault.
+
+## Introduction
+
+Librarian transforms Obsidian into a sophisticated reading journal. It automates the creation of book notes using the Open Library API, manages reading states through non-destructive frontmatter updates, and provides high-level data visualization for your reading habits.
 
 ## Key Features
 
-### 📚 Book Search & Auto-Note Generation
-- Search the **Open Library API** directly from Obsidian.
-- Automatically generate book notes with complete metadata: Title, Author, ISBN, Page Count, Cover Image, and more.
-- Customizable default folder for all your new book notes.
+### Metadata Management
+- **Open Library Integration**: Search and import book metadata including Title, Author, ISBN, Page Count, and Cover URLs.
+- **Automated Note Generation**: Create standardized book notes based on customizable templates.
+- **Custom Properties**: Support for user-defined YAML properties alongside core tracking fields.
 
-### 🔘 One-Click Reading Status
-- **▶ Start Reading**: Automatically increments your read count and marks the book as "Currently Reading".
-- **✅ Finished**: Sets your finish date and closes the current reading session.
-- **❌ Didn't Finish**: Marks the book as DNF and adjusts counts accordingly.
-- Buttons are injected directly into the header of your book notes for zero-friction updates.
+### Reading Lifecycle Tracking
+- **State Management**: Track books through "To-Read", "Currently Reading", "Finished", and "DNF" (Did Not Finish) states.
+- **Session Logging**: Automatically records start and end dates for every reading session, supporting multiple re-reads.
+- **Header Actions**: Injects functional UI elements directly into the Obsidian note header for frictionless state updates.
 
-### 🗄️ Bookshelf Management
-- **Shelf Assignment**: Use the "Shelf +" button to quickly add books to custom shelves (e.g., "Favorites", "Reference", "To-Read").
-- **Custom Sidebar View**: See your entire library grouped by shelf in a dedicated sidebar tab.
-- **Unshelved Grouping**: Automatically identifies books that haven't been organized yet.
+### Library Organization & Visualization
+- **Bookshelves**: Group books into custom shelves (e.g., "Reference", "Philosophy", "2024 Queue").
+- **Sidebar Views**: Dedicated views for browsing your library by shelf and analyzing reading statistics.
+- **Statistical Analysis**: Track total pages read, unique books completed, and drill down into specific date ranges.
 
-### 📊 Interactive Reading Statistics
-- **Drill-Down & Search**: Click any stat card to see the exact list of books contributing to it, with a built-in search bar for quick filtering.
-- **Sorted Highlights**: View your "Total Pages Read" sorted by book length to see your biggest achievements.
-- **Performance Optimized**: Handles large libraries smoothly by limiting initial lists to 50 items with a "Show all" option.
-- **Deep Metrics**: Tracks "Unique Pages Read" alongside total cumulative pages (including re-reads).
+### Quote & Annotation Support
+- **Contextual Quotes**: Quickly capture quotes with page numbers and tags.
+- **Block Referencing**: Generates stable block IDs for easy embedding in other notes.
+- **Aggregation**: Surface quotes across your entire library using dynamic code blocks.
 
-### 💬 Quote Integration & Tagging
-- **Quick Add**: Captures quotes, optional page numbers, and **tags** directly into the book note.
-- **Smart Referencing**: Generates book-contextual block IDs (e.g., `^quote-foundation-123`) so you can embed just the quote text elsewhere.
-- **Tag Discovery**: Use the `librarian` code block to aggregate quotes by tag:
-  ```librarian
-  tag: #philosophy
-  limit: 5
-  hideHeader: true
-  ```
-- **Modifier Support**: 
-    - `hideHeader: true`: Hide the block's title.
-    - `limit: X`: Restrict the number of items displayed.
+## Data Structure
 
-### ⚙️ Full Customization
-- **Custom Templates**: Edit the entire skeleton of new book notes in settings.
-- **Property Controls**: Opt-in or out of core metadata fields (ISBN, Rating, etc.) or add your own custom YAML properties.
-- **UI Toggles**: Turn off ribbon icons or header action buttons for a cleaner interface.
+Librarian relies on standardized YAML frontmatter. Below is an example of the data structure generated and managed by the plugin:
 
-### 🕰️ Historical Queries
-- **"What was I reading?" Command**: Query your vault to see which books were active on any specific date.
-- Perfect for answering "What was I reading last year?" using your logged `readHistory`.
-
-### 📝 Dynamic Code Blocks (NEW!)
-- **`librarian` Block**: Embed dynamic reading lists into any note.
-- **Example**: 
-  ```librarian
-  date: 2024-03-05
-  ```
-- **Template Ready**: Perfect for Daily Note templates to automatically surface your reading history.
-
-### 🕰️ Re-read History
-- Automatically logs every reading session (start and end dates) in the note's frontmatter.
-- Perfect for tracking re-reads over several years.
-
+```yaml
 ---
-
-## How to Use
-
-### 1. Adding a Book
-1. Open the **Command Palette** (`Cmd/Ctrl + P`).
-2. Search for `Librarian: Add Book`.
-3. Type the book title or author.
-4. Select the result to create a new note in your designated library folder.
-
-### 2. Organizing with Shelves
-1. Open a book note.
-2. Click the **Shelf +** button in the header.
-3. Select an existing shelf or type a new name to create one.
-4. Open the **Bookshelves** sidebar (Library icon) to see your collection organized.
-
-### 3. Tracking Progress
-- Use the **Start Reading** and **Finished** buttons as you go. 
-- The plugin handles the metadata updates and session logging automatically.
-
+type: book
+title: "Foundation"
+author: "Isaac Asimov"
+isbn: "9780553293357"
+pages: 244
+cover: "https://covers.openlibrary.org/b/id/10416358-L.jpg"
+shelf: 
+  - Classics
+  - Sci-Fi
+readCount: 1
+currentlyReading: false
+dateRead: 2024-03-01
+readHistory:
+  - start: 2024-02-15
+    end: 2024-03-01
 ---
+```
 
-## Installation (Development)
+## Usage Examples
 
+### The `librarian` Code Block
+
+You can embed dynamic lists or quote aggregations into any note (e.g., your Daily Note) using the `librarian` code block.
+
+**Query reading history for a specific date:**
+```librarian
+date: 2024-03-05
+hideHeader: false
+```
+
+**Aggregate quotes by tag:**
+```librarian
+tag: philosophy
+limit: 5
+hideHeader: true
+```
+
+### Custom Templates
+
+Librarian allows you to define a "Skeleton" for new book notes in the settings. You can use placeholders that the plugin will populate:
+
+```markdown
+# {{title}}
+By {{author}}
+
+> [!info] Metadata
+> **ISBN**: {{isbn}}
+> **Pages**: {{pages}}
+
+## My Review
+(Write your thoughts here...)
+
+## Quotes
+```
+
+## Installation
+
+### From Community Plugins (Recommended)
+1. Open Obsidian **Settings** > **Community Plugins**.
+2. Click **Browse** and search for "Librarian".
+3. Click **Install**, then **Enable**.
+
+### Manual Installation (Development)
 1. Clone this repository into your vault's `.obsidian/plugins/` folder.
-2. Run `npm install` to install dependencies.
-3. Run `npm run dev` to start the compilation in watch mode.
-4. Enable **The Librarian** in Obsidian's Community Plugins settings.
+2. Install dependencies: `npm install`.
+3. Build the plugin: `npm run build`.
+4. Enable **Librarian** in the Obsidian Community Plugins settings.
+
+## Technical Details
+
+- **Language**: TypeScript
+- **Dependencies**: Obsidian API, Open Library API
+- **License**: 0-BSD
 
 ---
-
-## Contributing
-Feel free to open issues or pull requests if you have ideas for new features or find bugs!
-
----
-*Built with ❤️ for the Obsidian community.*
+*Developed by LastRatAlive*

@@ -109,7 +109,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         addFM('pages', pages);
         addFM('image', cover);
         addFM('isbn', isbn);
-        addFM('tags', 'mediaDB/book');
+        addFM('tags', '');
         addFM('dateAdded', dateAdded);
         addFM('readCount', 0);
         addFM('currentlyReading', false);

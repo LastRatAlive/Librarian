@@ -21,7 +21,7 @@ pages: {{pages}}
 year: "{{year}}"
 image: "{{cover}}"
 isbn: "{{isbn}}"
-tags: mediaDB/book
+tags: ""
 dateAdded: {{dateAdded}}
 readCount: 0
 currentlyReading: false
