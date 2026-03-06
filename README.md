@@ -77,7 +77,21 @@ hideHeader: true
 
 ### Custom Templates
 
-Librarian allows you to define a "Note body template" in the settings. This template controls the content below the automatically managed frontmatter. You can use placeholders that the plugin will populate:
+Librarian allows you to define a **Template file** in the settings. This template controls the body content below the automatically managed frontmatter.
+
+#### Available Placeholders
+- `{{title}}`: The book's title.
+- `{{author}}`: The primary author.
+- `{{pages}}`: Page count.
+- `{{year}}`: Publication year.
+- `{{cover}}`: URL of the cover image.
+- `{{cover_image}}`: Formatted markdown image (e.g., `![](url)`).
+- `{{isbn}}`: ISBN-10 or ISBN-13.
+- `{{id}}`: Open Library Work ID.
+- `{{dateAdded}}`: Date the book was added to your vault.
+
+#### Template Example
+Create a markdown file (e.g., `templates/book-template.md`) with the following content:
 
 ```markdown
 # {{title}} - {{author}}
@@ -85,13 +99,14 @@ Librarian allows you to define a "Note body template" in the settings. This temp
 {{cover_image}}
 
 ## Summary
-Write your thoughts here you fool!
+(Write your summary here...)
 
 ## Quotes
-> Add quotes here you fool!
+> [!quote]
+> Add your favorite quotes here.
 
 ## Notes
-- anything else you fool!
+- 
 ```
 
 ## Installation

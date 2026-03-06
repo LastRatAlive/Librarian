@@ -59,6 +59,12 @@ export default class LibrarianPlugin extends Plugin {
 		});
 
 		// Add Ribbon Icons
+		if (this.settings.showAddBookRibbon) {
+			this.addRibbonIcon('plus-with-circle', 'Add book', () => {
+				new BookSearchModal(this.app, this).open();
+			});
+		}
+
 		if (this.settings.showShelfRibbon) {
 			this.addRibbonIcon('library', 'Open bookshelves', () => {
 				void this.activateShelfView();

@@ -7,6 +7,7 @@ export interface LibrarianSettings {
 	bookTemplate: string;
 	showShelfRibbon: boolean;
 	showStatsRibbon: boolean;
+	showAddBookRibbon: boolean;
 	showNoteButtons: boolean;
 	enabledProperties: { [key: string]: boolean };
 	additionalProperties: string;
@@ -20,7 +21,7 @@ export const DEFAULT_SETTINGS: LibrarianSettings = {
 {{cover_image}}
 
 ## Summary
-Write your thoughts here.
+(Write your thoughts here...)
 
 ## Quotes
 > Add quotes here.
@@ -30,6 +31,7 @@ Write your thoughts here.
 `,
 	showShelfRibbon: true,
 	showStatsRibbon: true,
+	showAddBookRibbon: true,
 	showNoteButtons: true,
 	enabledProperties: {
 		title: true,
@@ -102,6 +104,17 @@ export class LibrarianSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showStatsRibbon)
 				.onChange((value) => {
 					this.plugin.settings.showStatsRibbon = value;
+					void this.plugin.saveSettings();
+					new Notice('Please reload the plugin to see ribbon changes');
+				}));
+
+		new Setting(containerEl)
+			.setName('Show add book ribbon icon')
+			.setDesc('Add a plus icon to the left ribbon to quickly search and add books.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showAddBookRibbon)
+				.onChange((value) => {
+					this.plugin.settings.showAddBookRibbon = value;
 					void this.plugin.saveSettings();
 					new Notice('Please reload the plugin to see ribbon changes');
 				}));
