@@ -125,6 +125,7 @@ Create a markdown file (e.g., `templates/book-template.md`) with the following c
 ## Technical Details
 
 - **Language**: TypeScript
+- **Network Disclosure**: This plugin makes external network requests to the **Open Library API** (`https://openlibrary.org/`) to search for book metadata and retrieve cover images. No personal data or vault content is ever sent to this or any other external service.
 - **Dependencies**: Obsidian API, Open Library API
 - **License**: 0-BSD
 
