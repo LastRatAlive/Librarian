@@ -111,7 +111,7 @@ Create a markdown file (e.g., `templates/book-template.md`) with the following c
 
 ## Installation
 
-### From Community Plugins (Recommended)
+### From Community Plugins (Not Yet Available)
 1. Open Obsidian **Settings** > **Community Plugins**.
 2. Click **Browse** and search for "Librarian".
 3. Click **Install**, then **Enable**.
