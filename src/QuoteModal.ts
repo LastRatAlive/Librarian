@@ -1,4 +1,4 @@
-import { App, Modal, Setting, TFile, Notice } from 'obsidian';
+import { App, Modal, Setting, TFile, Notice, MarkdownView } from 'obsidian';
 import LibrarianPlugin from './main';
 
 interface BookFrontmatter {
@@ -65,30 +65,52 @@ export class QuoteModal extends Modal {
         const randomId = Math.floor(100 + Math.random() * 900);
         const blockId = `quote-${bookSlug}-${randomId}`;
 
-        const content = await this.app.vault.read(this.file);
-
         const tags = this.quoteTags.trim() ? ` ${this.quoteTags.trim()}` : "";
         let newQuoteBlock = `\n> "${this.quoteText.trim()}"${tags} ^${blockId}\n`;
         if (this.pageReference.trim()) {
             newQuoteBlock += `— ${this.pageReference.trim()}\n`;
         }
 
-        let updatedContent = content;
         const quotesHeader = "## Quotes";
 
-        if (content.includes(quotesHeader)) {
-            // Append after the header
-            updatedContent = content.replace(quotesHeader, `${quotesHeader}\n${newQuoteBlock}`);
+        // Try to use the Editor API if the file is currently open
+        let editorRef = null;
+        const leaves = this.app.workspace.getLeavesOfType('markdown');
+        for (const leaf of leaves) {
+            const view = leaf.view as MarkdownView;
+            if (view.file === this.file) {
+                editorRef = view.editor;
+                break;
+            }
+        }
+
+        if (editorRef) {
+            const content = editorRef.getValue();
+            if (content.includes(quotesHeader)) {
+                const index = content.indexOf(quotesHeader) + quotesHeader.length;
+                editorRef.replaceRange(`\n${newQuoteBlock}`, { line: editorRef.offsetToPos(index).line + 1, ch: 0 });
+            } else if (content.includes("## Notes")) {
+                const index = content.indexOf("## Notes");
+                editorRef.replaceRange(`${quotesHeader}\n${newQuoteBlock}\n`, { line: editorRef.offsetToPos(index).line, ch: 0 });
+            } else {
+                const lineCount = editorRef.lineCount();
+                editorRef.replaceRange(`\n\n${quotesHeader}\n${newQuoteBlock}`, { line: lineCount, ch: 0 });
+            }
         } else {
-            // Add header at the end or before Notes
-            if (content.includes("## Notes")) {
+            // Fallback to Vault API
+            const content = await this.app.vault.read(this.file);
+            let updatedContent = content;
+
+            if (content.includes(quotesHeader)) {
+                updatedContent = content.replace(quotesHeader, `${quotesHeader}\n${newQuoteBlock}`);
+            } else if (content.includes("## Notes")) {
                 updatedContent = content.replace("## Notes", `${quotesHeader}\n${newQuoteBlock}\n## Notes`);
             } else {
                 updatedContent = content + `\n\n${quotesHeader}\n${newQuoteBlock}`;
             }
+            await this.app.vault.modify(this.file, updatedContent);
         }
 
-        await this.app.vault.modify(this.file, updatedContent);
         this.close();
 
         // Copy Rich Reference Notice
