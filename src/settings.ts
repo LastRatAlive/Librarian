@@ -79,7 +79,7 @@ export class LibrarianSettingTab extends PluginSettingTab {
 						this.plugin.settings.defaultBookFolder = value;
 						void this.plugin.saveSettings();
 					});
-				new FolderSuggest(this.app, text.inputEl as HTMLInputElement);
+				new FolderSuggest(this.app, text.inputEl);
 			});
 
 		new Setting(containerEl)
@@ -148,7 +148,7 @@ export class LibrarianSettingTab extends PluginSettingTab {
 						this.plugin.settings.templatePath = value;
 						await this.plugin.saveSettings();
 					});
-				new FileSuggest(this.app, text.inputEl as HTMLInputElement);
+				new FileSuggest(this.app, text.inputEl);
 			});
 
 		const placeholderContainer = containerEl.createDiv({ cls: 'librarian-placeholder-list' });
