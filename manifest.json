@@ -2,7 +2,7 @@
 	"id": "librarian",
 	"name": "Librarian",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
+	"minAppVersion": "1.12.5",
 	"description": "Book tracking native to your vault. Like Goodreads, but for your notes.",
 	"author": "LastRatAlive",
 	"authorUrl": "",
