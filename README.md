@@ -1,6 +1,6 @@
 # Librarian for Obsidian
 
-Librarian is a comprehensive book-tracking and library management plugin for Obsidian. It provides a local-first alternative to services like Goodreads by managing book metadata, reading progress, and personal libraries directly within your vault.
+Librarian is a comprehensive book-tracking and library management tool for Obsidian. It provides a local-first alternative to services like Goodreads by managing book metadata, reading progress, and personal libraries directly within your vault.
 
 ## Introduction
 
@@ -125,9 +125,15 @@ Create a markdown file (e.g., `templates/book-template.md`) with the following c
 ## Technical Details
 
 - **Language**: TypeScript
-- **Network Disclosure**: This plugin makes external network requests to the **Open Library API** (`https://openlibrary.org/`) to search for book metadata and retrieve cover images. No personal data or vault content is ever sent to this or any other external service.
+- **Network Disclosure**: This tool makes external network requests to the **Open Library API** (`https://openlibrary.org/`) to search for book metadata and retrieve cover images. No personal data or vault content is ever sent to this or any other external service.
 - **Dependencies**: Obsidian API, Open Library API
 - **License**: 0-BSD
+
+## Support the Project
+
+If you find Librarian helpful and want to support its development, you can sponsor the project on GitHub!
+
+[Sponsor on GitHub](https://github.com/sponsors/LastRatAlive)
 
 ---
 *Developed by LastRatAlive*
