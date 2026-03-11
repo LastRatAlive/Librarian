@@ -23,7 +23,7 @@ export class StatsView extends ItemView {
         return 'bar-chart';
     }
 
-    onOpen() {
+    async onOpen() {
         this.registerEvent(this.app.metadataCache.on('resolved', () => this.render()));
         this.render();
     }
