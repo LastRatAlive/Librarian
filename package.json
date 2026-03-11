@@ -1,6 +1,6 @@
 {
 	"name": "librarian",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Book tracking native to your vault. Like Goodreads, but for your notes.",
 	"main": "main.js",
 	"type": "module",
