@@ -134,13 +134,13 @@ export class LibrarianSettingTab extends PluginSettingTab {
 			.setHeading();
 
 		containerEl.createEl('p', {
-			text: 'Choose a markdown file in your vault to use as the body for new book notes. Frontmatter is managed automatically via the property settings below.',
+			text: 'Choose a Markdown file in your vault to use as the body for new book notes. Frontmatter is managed automatically via the property settings below.',
 			cls: 'librarian-settings-intro'
 		});
 
 		new Setting(containerEl)
 			.setName('Template file')
-			.setDesc('Path to the markdown file to use as a template. ')
+			.setDesc('Path to the Markdown file to use as a template. ')
 			.addText(text => {
 				text.setPlaceholder('templates/book-template.md')
 					.setValue(this.plugin.settings.templatePath)
@@ -152,7 +152,7 @@ export class LibrarianSettingTab extends PluginSettingTab {
 			});
 
 		const placeholderContainer = containerEl.createDiv({ cls: 'librarian-placeholder-list' });
-		placeholderContainer.createEl('p', { text: 'Available placeholders for your template file:', cls: 'librarian-settings-intro' });
+		placeholderContainer.createEl('p', { text: 'Available placeholders for your template file: ', cls: 'librarian-settings-intro' });
 		const ul = placeholderContainer.createEl('ul');
 		const placeholders = [
 			'{{title}} - The title of the book',
