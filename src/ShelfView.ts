@@ -30,10 +30,11 @@ export class ShelfView extends ItemView {
         return 'library';
     }
 
-    async onOpen() {
+    onOpen(): Promise<void> {
         // Re-render when files change
         this.registerEvent(this.app.metadataCache.on('resolved', () => this.render()));
         this.render();
+        return Promise.resolve();
     }
 
     render() {
