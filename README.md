@@ -129,6 +129,21 @@ Create a markdown file (e.g., `templates/book-template.md`) with the following c
 - **Dependencies**: Obsidian API, Open Library API
 - **License**: 0-BSD
 
+## Roadmap
+
+The following features are planned for future releases. Development will begin once the plugin is available in the Community Plugins directory.
+
+### Reading Challenge
+Set a personal reading goal for the year and track your progress toward it. The Reading Challenge view will show how many books you've finished so far this year, how you're pacing against your goal, and a historical breakdown of books read in each previous year - similar in style to the Bookshelves view.
+
+### Goodreads Import / Export
+Migrate your existing reading history into Librarian from a Goodreads CSV export, or export your library back out. Goodreads data does not map cleanly to Open Library metadata, so this feature will *hopefully*include careful handling of edge cases such as missing ISBNs, mismatched titles, and multi-read histories.
+
+### Custom Book Entry
+Can't find a book in Open Library? No problem. A dedicated form will let you manually enter any book's details - title, author, page count, cover image, and more - so that every book in your library can be tracked, regardless of whether it exists in an external database.
+
+---
+
 ## Support the Project
 
 If you find Librarian helpful and want to support its development, you can sponsor the project on GitHub!
