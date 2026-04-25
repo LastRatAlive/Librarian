@@ -20,6 +20,7 @@ Librarian transforms Obsidian into a sophisticated reading journal. It automates
 
 ### Library Organization & Visualization
 - **Bookshelves**: Group books into custom shelves (e.g., "Reference", "Philosophy", "2024 Queue").
+- **Dynamic Folder Organization**: Use placeholders like `{{author}}`, `{{year}}`, or `{{subject}}` in your default folder path to automatically sort new books into subfolders.
 - **Sidebar Views**: Dedicated views for browsing your library by shelf and analyzing reading statistics.
 - **Statistical Analysis**: Track total pages read, unique books completed, and drill down into specific date ranges.
 
@@ -89,6 +90,8 @@ Librarian allows you to define a **Template file** in the settings. This templat
 - `{{isbn}}`: ISBN-10 or ISBN-13.
 - `{{id}}`: Open Library Work ID.
 - `{{dateAdded}}`: Date the book was added to your vault.
+- `{{subject}}`: Primary subject/genre (also available for folder paths).
+- `{{firstLetter}}`: First letter of the title (A-Z, useful for folder paths).
 
 #### Template Example
 Create a markdown file (e.g., `templates/book-template.md`) with the following content:
