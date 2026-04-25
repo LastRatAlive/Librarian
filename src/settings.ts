@@ -48,7 +48,8 @@ export const DEFAULT_SETTINGS: LibrarianSettings = {
 		myRating: true,
 		id: true,
 		dataSource: true,
-		englishTitle: true
+		englishTitle: true,
+		subject: true
 	},
 	additionalProperties: ""
 }
@@ -71,9 +72,9 @@ export class LibrarianSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Default book folder')
-			.setDesc('Folder where new books will be saved. Must exist.')
+			.setDesc('Folder path for new book notes. Supports template variables to auto-organize books into subfolders.')
 			.addText(text => {
-				text.setPlaceholder('Books/')
+				text.setPlaceholder('Books/{{author}}')
 					.setValue(this.plugin.settings.defaultBookFolder)
 					.onChange((value) => {
 						this.plugin.settings.defaultBookFolder = value;
@@ -81,6 +82,18 @@ export class LibrarianSettingTab extends PluginSettingTab {
 					});
 				new FolderSuggest(this.app, text.inputEl);
 			});
+
+		const folderVarContainer = containerEl.createDiv({ cls: 'librarian-placeholder-list' });
+		folderVarContainer.createEl('p', { text: 'Available folder path variables:', cls: 'librarian-settings-intro' });
+		const folderVarList = folderVarContainer.createEl('ul');
+		const folderVars = [
+			'{{author}} - The primary author',
+			'{{year}} - Publication year',
+			'{{title}} - Book title',
+			'{{firstLetter}} - First letter of the title (A-Z)',
+			'{{subject}} - Primary subject/genre from Open Library',
+		];
+		folderVars.forEach(v => folderVarList.createEl('li', { text: v }));
 
 		new Setting(containerEl)
 			.setName('Interface adjustments')

@@ -379,6 +379,13 @@ export default class LibrarianPlugin extends Plugin {
 	async loadSettings() {
 		const data = await this.loadData() as Record<string, unknown> | null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+
+		// Deep-merge enabledProperties so new defaults are picked up by existing users
+		this.settings.enabledProperties = Object.assign(
+			{},
+			DEFAULT_SETTINGS.enabledProperties,
+			data?.enabledProperties as Record<string, boolean> | undefined
+		);
 	}
 
 	async saveSettings() {

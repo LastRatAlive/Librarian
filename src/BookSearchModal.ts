@@ -10,6 +10,7 @@ interface BookSearchResult {
     cover_i?: number; // OpenLibrary cover ID
     isbn?: string[];
     number_of_pages_median?: number;
+    subject?: string[];
 }
 
 export class BookSearchModal extends SuggestModal<BookSearchResult> {
@@ -49,7 +50,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         try {
             const encodedQuery = encodeURIComponent(query);
             const response = await requestUrl({
-                url: `https://openlibrary.org/search.json?q=${encodedQuery}&limit=10&fields=key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median`,
+                url: `https://openlibrary.org/search.json?q=${encodedQuery}&limit=10&fields=key,title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,subject`,
             });
 
             const data = response.json as { docs: BookSearchResult[] };
@@ -74,6 +75,27 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         void this.addBookToVault(book);
     }
 
+    /**
+     * Sanitize a string for use as a folder or file name segment.
+     * Removes characters illegal in file paths and trims whitespace.
+     */
+    private sanitizePathSegment(value: string): string {
+        return value.replace(/[\\/:*?"<>|]/g, '').trim();
+    }
+
+    /**
+     * Resolve template variables in a folder path string.
+     * Supported variables: {{author}}, {{year}}, {{title}}, {{firstLetter}}, {{subject}}
+     */
+    private resolveFolderPath(template: string, vars: Record<string, string>): string {
+        let resolved = template;
+        for (const [key, value] of Object.entries(vars)) {
+            const sanitized = this.sanitizePathSegment(value || 'Unknown');
+            resolved = resolved.split(`{{${key}}}`).join(sanitized);
+        }
+        return resolved;
+    }
+
     private async addBookToVault(book: BookSearchResult) {
         const author = (book.author_name && book.author_name.length > 0) ? book.author_name[0] || '' : '';
         const year = book.first_publish_year ? `${book.first_publish_year}` : '';
@@ -81,6 +103,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         const isbn = (book.isbn && book.isbn.length > 0) ? book.isbn[0] || '' : '';
         const pages = book.number_of_pages_median || 0;
         const dateAdded = new Date().toISOString().split('T')[0] ?? "";
+        const subject = (book.subject && book.subject.length > 0) ? book.subject[0] || '' : '';
 
         // Clean up title for filename
         const safeTitle = book.title.replace(/[\\/:*?"<>|]/g, '');
@@ -114,6 +137,7 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
         fmLines.push('readCount: 0');
         fmLines.push('currentlyReading: false');
         addFM('myRating', 0);
+        addFM('subject', subject);
 
         if (this.plugin.settings.additionalProperties && this.plugin.settings.additionalProperties.trim()) {
             fmLines.push(this.plugin.settings.additionalProperties.trim());
@@ -151,8 +175,16 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
 
         const finalContent = `${generatedFM}\n${body}`;
 
-        // Normalize folder path (remove leading/trailing slashes)
-        let folderPath = this.plugin.settings.defaultBookFolder || '';
+        // Resolve template variables in folder path, then normalize
+        const pathTemplate = this.plugin.settings.defaultBookFolder || '';
+        const pathVars: Record<string, string> = {
+            author,
+            year,
+            title: book.title,
+            firstLetter: book.title.charAt(0).toUpperCase(),
+            subject,
+        };
+        let folderPath = this.resolveFolderPath(pathTemplate, pathVars);
         folderPath = folderPath.replace(/^\/+|\/+$/g, '');
 
         let fileName = `${safeTitle}.md`;
