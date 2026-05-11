@@ -72,7 +72,7 @@ export class StatsView extends ItemView {
 
                     let yearsRead: string[] = [];
                     if (frontmatter['readHistory'] && Array.isArray(frontmatter['readHistory'])) {
-                        for (const session of frontmatter['readHistory']) {
+                        for (const session of (frontmatter['readHistory'] as { start: string, end: string }[])) {
                             if (session.end && session.end !== "DNF") {
                                 const year = session.end.split('-')[0];
                                 if (year) yearsRead.push(year);
@@ -80,7 +80,7 @@ export class StatsView extends ItemView {
                         }
                     }
                     if (yearsRead.length === 0) {
-                        const dateStr = frontmatter['dateRead'] || frontmatter['dateAdded'];
+                        const dateStr = (frontmatter['dateRead'] || frontmatter['dateAdded']) as string | undefined;
                         if (typeof dateStr === 'string' && dateStr) {
                             const year = dateStr.split('-')[0];
                             if (year) yearsRead.push(year);
@@ -205,7 +205,7 @@ export class StatsView extends ItemView {
 
     private renderReadingChallenge(container: HTMLElement, booksByYear: Record<string, TFile[]>) {
         const challengeContainer = container.createEl('div', { cls: 'librarian-challenge-container' });
-        challengeContainer.createEl('div', { text: 'Reading Challenge', cls: 'librarian-view-header', attr: { style: 'margin-top: 1.5rem;' } });
+        challengeContainer.createEl('div', { text: 'Reading challenge', cls: 'librarian-view-header', attr: { style: 'margin-top: 1.5rem;' } });
 
         const currentYear = new Date().getFullYear().toString();
         const thisYearBooks = this.sortBooksByMostRecentlyRead(booksByYear[currentYear] || []);
@@ -222,7 +222,7 @@ export class StatsView extends ItemView {
 
         const years = Object.keys(booksByYear).filter(y => y !== currentYear && y !== "Unknown").sort((a, b) => b.localeCompare(a));
         if (years.length > 0) {
-            challengeContainer.createEl('div', { text: 'Previous Years', cls: 'librarian-view-header librarian-historical-header', attr: { style: 'margin-top: 1.5rem;' } });
+            challengeContainer.createEl('div', { text: 'Previous years', cls: 'librarian-view-header librarian-historical-header', attr: { style: 'margin-top: 1.5rem;' } });
             for (const year of years) {
                 const yearBooks = this.sortBooksByMostRecentlyRead(booksByYear[year] || []);
                 if (yearBooks && yearBooks.length > 0) {
@@ -234,7 +234,7 @@ export class StatsView extends ItemView {
         const unknownYearBooks = booksByYear["Unknown"];
         if (unknownYearBooks && unknownYearBooks.length > 0) {
             const sortedUnknown = this.sortBooksByMostRecentlyRead(unknownYearBooks);
-            this.renderStatCard(challengeContainer, `Books read in Unknown Year`, sortedUnknown.length.toString(), sortedUnknown);
+            this.renderStatCard(challengeContainer, `Books read in unknown year`, sortedUnknown.length.toString(), sortedUnknown);
         }
     }
 
@@ -246,7 +246,7 @@ export class StatsView extends ItemView {
         let latestDate = "";
 
         if (frontmatter['readHistory'] && Array.isArray(frontmatter['readHistory'])) {
-            for (const session of frontmatter['readHistory']) {
+            for (const session of (frontmatter['readHistory'] as { start: string, end: string }[])) {
                 if (session.end && session.end !== "DNF" && session.end > latestDate) {
                     latestDate = session.end;
                 }
@@ -254,7 +254,7 @@ export class StatsView extends ItemView {
         }
 
         if (!latestDate) {
-            const dateStr = frontmatter['dateRead'] || frontmatter['dateAdded'];
+            const dateStr = (frontmatter['dateRead'] || frontmatter['dateAdded']) as string | undefined;
             if (typeof dateStr === 'string' && dateStr) {
                 latestDate = dateStr;
             }

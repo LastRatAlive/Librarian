@@ -196,3 +196,9 @@ body.is-mobile .librarian-button-container {
     background-color: var(--interactive-accent);
     border-radius: 6px;
 }
+
+.librarian-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}

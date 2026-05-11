@@ -98,7 +98,7 @@ export class LibrarianSettingTab extends PluginSettingTab {
 		folderVars.forEach(v => folderVarList.createEl('li', { text: v }));
 
 		new Setting(containerEl)
-			.setName('Reading Challenge')
+			.setName('Reading challenge')
 			.setHeading();
 
 		new Setting(containerEl)

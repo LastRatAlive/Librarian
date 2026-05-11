@@ -52,7 +52,7 @@ export class CustomBookModal extends Modal {
         new Setting(contentEl)
             .setName('Publication year')
             .addText(text => text
-                .setPlaceholder('e.g., 2024')
+                .setPlaceholder('Example: 2024')
                 .onChange(value => {
                     this.year = value;
                 }));
@@ -60,7 +60,7 @@ export class CustomBookModal extends Modal {
         new Setting(contentEl)
             .setName('ISBN')
             .addText(text => text
-                .setPlaceholder('ISBN-10 or ISBN-13')
+                .setPlaceholder('Example: 9780553293357')
                 .onChange(value => {
                     this.isbn = value;
                 }));
@@ -68,25 +68,22 @@ export class CustomBookModal extends Modal {
         new Setting(contentEl)
             .setName('Cover image URL')
             .addText(text => text
-                .setPlaceholder('https://...')
+                .setPlaceholder('Enter cover image URL')
                 .onChange(value => {
                     this.cover = value;
                 }));
 
         new Setting(contentEl)
-            .setName('Subject / Genre')
+            .setName('Subject / genre')
             .addText(text => text
-                .setPlaceholder('e.g., Science Fiction')
+                .setPlaceholder('Example: science fiction')
                 .onChange(value => {
                     this.subject = value;
                 }));
 
         const btnContainer = contentEl.createDiv({ cls: 'librarian-modal-buttons' });
-        btnContainer.style.display = 'flex';
-        btnContainer.style.justifyContent = 'flex-end';
-        btnContainer.style.marginTop = '1rem';
 
-        const submitBtn = btnContainer.createEl('button', { text: 'Add Book', cls: 'mod-cta' });
+        const submitBtn = btnContainer.createEl('button', { text: 'Add book', cls: 'mod-cta' });
         submitBtn.onclick = () => {
             if (!this.title.trim()) {
                 new Notice("Title is required.");
