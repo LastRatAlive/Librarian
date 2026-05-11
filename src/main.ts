@@ -1,6 +1,7 @@
 import { MarkdownView, Plugin, TFile, Notice, WorkspaceLeaf, Platform } from 'obsidian';
 import { LibrarianSettings, DEFAULT_SETTINGS, LibrarianSettingTab } from './settings';
 import { BookSearchModal } from './BookSearchModal';
+import { CustomBookModal } from './CustomBookModal';
 import { ShelfView, SHELF_VIEW_TYPE } from './ShelfView';
 import { StatsView, STATS_VIEW_TYPE } from './StatsView';
 import { ShelfSelectionModal } from './ShelfSelectionModal';
@@ -152,6 +153,14 @@ export default class LibrarianPlugin extends Plugin {
 			name: 'Add book (search open library)',
 			callback: () => {
 				new BookSearchModal(this.app, this).open();
+			}
+		});
+
+		this.addCommand({
+			id: 'add-book-manual',
+			name: 'Add book (manual entry)',
+			callback: () => {
+				new CustomBookModal(this.app, this).open();
 			}
 		});
 

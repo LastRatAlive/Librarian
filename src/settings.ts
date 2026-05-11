@@ -11,6 +11,7 @@ export interface LibrarianSettings {
 	showNoteButtons: boolean;
 	enabledProperties: { [key: string]: boolean };
 	additionalProperties: string;
+	readingGoal: number;
 }
 
 export const DEFAULT_SETTINGS: LibrarianSettings = {
@@ -51,7 +52,8 @@ export const DEFAULT_SETTINGS: LibrarianSettings = {
 		englishTitle: true,
 		subject: true
 	},
-	additionalProperties: ""
+	additionalProperties: "",
+	readingGoal: 50
 }
 
 export class LibrarianSettingTab extends PluginSettingTab {
@@ -94,6 +96,24 @@ export class LibrarianSettingTab extends PluginSettingTab {
 			'{{subject}} - Primary subject/genre from Open Library',
 		];
 		folderVars.forEach(v => folderVarList.createEl('li', { text: v }));
+
+		new Setting(containerEl)
+			.setName('Reading Challenge')
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName('Yearly reading goal')
+			.setDesc('How many books do you want to read this year?')
+			.addText(text => text
+				.setPlaceholder('50')
+				.setValue(this.plugin.settings.readingGoal.toString())
+				.onChange(async (value) => {
+					const parsed = parseInt(value);
+					if (!isNaN(parsed)) {
+						this.plugin.settings.readingGoal = parsed;
+						await this.plugin.saveSettings();
+					}
+				}));
 
 		new Setting(containerEl)
 			.setName('Interface adjustments')

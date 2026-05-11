@@ -1,6 +1,6 @@
-import { App, Notice, SuggestModal, requestUrl, TFile } from 'obsidian';
+import { App, Notice, SuggestModal, requestUrl } from 'obsidian';
 import LibrarianPlugin from './main';
-import { DEFAULT_SETTINGS } from './settings';
+import { BookData, createBookNote } from './BookCreator';
 
 interface BookSearchResult {
     key: string;
@@ -72,156 +72,18 @@ export class BookSearchModal extends SuggestModal<BookSearchResult> {
     }
 
     onChooseSuggestion(book: BookSearchResult, evt: MouseEvent | KeyboardEvent) {
-        void this.addBookToVault(book);
-    }
-
-    /**
-     * Sanitize a string for use as a folder or file name segment.
-     * Removes characters illegal in file paths and trims whitespace.
-     */
-    private sanitizePathSegment(value: string): string {
-        return value.replace(/[\\/:*?"<>|]/g, '').trim();
-    }
-
-    /**
-     * Resolve template variables in a folder path string.
-     * Supported variables: {{author}}, {{year}}, {{title}}, {{firstLetter}}, {{subject}}
-     */
-    private resolveFolderPath(template: string, vars: Record<string, string>): string {
-        let resolved = template;
-        for (const [key, value] of Object.entries(vars)) {
-            const sanitized = this.sanitizePathSegment(value || 'Unknown');
-            resolved = resolved.split(`{{${key}}}`).join(sanitized);
-        }
-        return resolved;
-    }
-
-    private async addBookToVault(book: BookSearchResult) {
-        const author = (book.author_name && book.author_name.length > 0) ? book.author_name[0] || '' : '';
-        const year = book.first_publish_year ? `${book.first_publish_year}` : '';
-        const cover = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : '';
-        const isbn = (book.isbn && book.isbn.length > 0) ? book.isbn[0] || '' : '';
-        const pages = book.number_of_pages_median || 0;
-        const dateAdded = new Date().toISOString().split('T')[0] ?? "";
-        const subject = (book.subject && book.subject.length > 0) ? book.subject[0] || '' : '';
-
-        // Clean up title for filename
-        const safeTitle = book.title.replace(/[\\/:*?"<>|]/g, '');
-
-        // Generate dynamic frontmatter and body
-        const enabledProps = this.plugin.settings.enabledProperties;
-        let fmLines: string[] = ["---"];
-
-        const addFM = (key: string, value: string | number | boolean) => {
-            if (enabledProps[key]) {
-                if (typeof value === 'string') {
-                    fmLines.push(`${key}: "${value.replace(/"/g, '\\"')}"`);
-                } else {
-                    fmLines.push(`${key}: ${value}`);
-                }
-            }
-        };
-
-        fmLines.push('type: book');
-        addFM('title', book.title);
-        addFM('englishTitle', book.title);
-        addFM('year', year);
-        addFM('dataSource', 'OpenLibrary');
-        addFM('id', book.key.replace('/works/', ''));
-        addFM('author', author);
-        fmLines.push(`pages: ${pages}`);
-        addFM('image', cover);
-        addFM('isbn', isbn);
-        addFM('tags', '');
-        addFM('dateAdded', dateAdded);
-        fmLines.push('readCount: 0');
-        fmLines.push('currentlyReading: false');
-        addFM('myRating', 0);
-        addFM('subject', subject);
-
-        if (this.plugin.settings.additionalProperties && this.plugin.settings.additionalProperties.trim()) {
-            fmLines.push(this.plugin.settings.additionalProperties.trim());
-        }
-        fmLines.push("---");
-        const generatedFM = fmLines.join("\n");
-
-        let body = this.plugin.settings.bookTemplate || DEFAULT_SETTINGS.bookTemplate;
-
-        // Try to load from template file if path is set
-        if (this.plugin.settings.templatePath) {
-            const templateFile = this.app.vault.getAbstractFileByPath(this.plugin.settings.templatePath);
-            if (templateFile instanceof TFile) {
-                body = await this.app.vault.read(templateFile);
-            } else {
-                new Notice(`Template file not found at: ${this.plugin.settings.templatePath}. Using fallback template.`);
-            }
-        }
-
-        const placeholders: { [key: string]: string } = {
-            '{{title}}': book.title,
-            '{{author}}': author,
-            '{{pages}}': pages.toString(),
-            '{{year}}': year,
-            '{{cover}}': cover,
-            '{{cover_image}}': cover ? `![](${cover})` : '',
-            '{{isbn}}': isbn,
-            '{{id}}': book.key.replace('/works/', ''),
-            '{{dateAdded}}': dateAdded
-        };
-
-        for (const [key, value] of Object.entries(placeholders)) {
-            body = body.split(key).join(value);
-        }
-
-        const finalContent = `${generatedFM}\n${body}`;
-
-        // Resolve template variables in folder path, then normalize
-        const pathTemplate = this.plugin.settings.defaultBookFolder || '';
-        const pathVars: Record<string, string> = {
-            author,
-            year,
+        const bookData: BookData = {
             title: book.title,
-            firstLetter: book.title.charAt(0).toUpperCase(),
-            subject,
+            author: (book.author_name && book.author_name.length > 0) ? book.author_name[0] || '' : '',
+            year: book.first_publish_year ? `${book.first_publish_year}` : '',
+            cover: book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : '',
+            isbn: (book.isbn && book.isbn.length > 0) ? book.isbn[0] || '' : '',
+            pages: book.number_of_pages_median || 0,
+            subject: (book.subject && book.subject.length > 0) ? book.subject[0] || '' : '',
+            id: book.key.replace('/works/', ''),
+            dataSource: 'OpenLibrary'
         };
-        let folderPath = this.resolveFolderPath(pathTemplate, pathVars);
-        folderPath = folderPath.replace(/^\/+|\/+$/g, '');
 
-        let fileName = `${safeTitle}.md`;
-        let fullPath = folderPath === '' ? fileName : `${folderPath}/${fileName}`;
-
-        // Add number to filename if it already exists
-        let i = 1;
-        while (this.app.vault.getAbstractFileByPath(fullPath)) {
-            fileName = `${safeTitle} (${i}).md`;
-            fullPath = folderPath === '' ? fileName : `${folderPath}/${fileName}`;
-            i++;
-        }
-
-        try {
-            // Check and create nested folders if needed
-            if (folderPath !== '') {
-                const folders = folderPath.split('/');
-                let currentPath = '';
-
-                for (const folder of folders) {
-                    currentPath = currentPath === '' ? folder : `${currentPath}/${folder}`;
-                    const folderExists = this.app.vault.getAbstractFileByPath(currentPath);
-                    if (!folderExists) {
-                        await this.app.vault.createFolder(currentPath);
-                    }
-                }
-            }
-
-            const file = await this.app.vault.create(fullPath, finalContent);
-
-            // Open the newly created note
-            void this.app.workspace.getLeaf(false).openFile(file);
-
-            new Notice(`Added ${book.title} to your library`);
-        } catch (error) {
-            console.error("Error creating book note:", error);
-            new Notice("Error creating book note. Does the target folder exist?");
-        }
+        void createBookNote(this.app, this.plugin, bookData);
     }
 }

@@ -157,3 +157,42 @@ body.is-mobile .librarian-button-container {
 .librarian-notice-margin {
     margin-top: 8px;
 }
+
+/* 
+ * Reading Challenge
+ */
+.librarian-challenge-container {
+    margin-top: 20px;
+}
+
+.librarian-challenge-progress {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.librarian-challenge-text {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--text-normal);
+}
+
+.librarian-progress-bar {
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.librarian-progress-bar::-webkit-progress-bar {
+    background-color: var(--background-modifier-border);
+    border-radius: 6px;
+}
+
+.librarian-progress-bar::-webkit-progress-value {
+    background-color: var(--interactive-accent);
+    border-radius: 6px;
+}

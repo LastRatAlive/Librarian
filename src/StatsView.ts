@@ -45,6 +45,7 @@ export class StatsView extends ItemView {
         const readBooks: TFile[] = [];
         const currentlyReading: TFile[] = [];
         const pagesData: { file: TFile, pages: number, totalPages: number }[] = [];
+        const booksByYear: Record<string, TFile[]> = {};
         let totalPagesRead = 0;
         let totalUniquePagesRead = 0;
 
@@ -68,6 +69,30 @@ export class StatsView extends ItemView {
                     if (pages > 0) {
                         pagesData.push({ file, pages, totalPages: pages * readCount });
                     }
+
+                    let yearsRead: string[] = [];
+                    if (frontmatter['readHistory'] && Array.isArray(frontmatter['readHistory'])) {
+                        for (const session of frontmatter['readHistory']) {
+                            if (session.end && session.end !== "DNF") {
+                                const year = session.end.split('-')[0];
+                                if (year) yearsRead.push(year);
+                            }
+                        }
+                    }
+                    if (yearsRead.length === 0) {
+                        const dateStr = frontmatter['dateRead'] || frontmatter['dateAdded'];
+                        if (typeof dateStr === 'string' && dateStr) {
+                            const year = dateStr.split('-')[0];
+                            if (year) yearsRead.push(year);
+                        } else {
+                            yearsRead.push("Unknown");
+                        }
+                    }
+
+                    for (const year of new Set(yearsRead)) {
+                        if (!booksByYear[year]) booksByYear[year] = [];
+                        booksByYear[year].push(file);
+                    }
                 }
 
                 if (frontmatter['currentlyReading'] === true || frontmatter['currentlyReading'] === 'true') {
@@ -78,8 +103,8 @@ export class StatsView extends ItemView {
 
         // Render Stats
         this.renderStatCard(content, "Total books in library", allBooks.length.toString(), allBooks);
-        this.renderStatCard(content, "Books read", readBooks.length.toString(), readBooks);
-        this.renderStatCard(content, "Currently reading", currentlyReading.length.toString(), currentlyReading);
+        this.renderStatCard(content, "Books read", readBooks.length.toString(), this.sortBooksByMostRecentlyRead(readBooks));
+        this.renderStatCard(content, "Currently reading", currentlyReading.length.toString(), this.sortBooksByMostRecentlyRead(currentlyReading));
 
         // Custom Pages Render (Sorted by page count)
         const sortedPages = pagesData.sort((a, b) => b.pages - a.pages);
@@ -87,6 +112,8 @@ export class StatsView extends ItemView {
             const data = sortedPages.find(sp => sp.file === file);
             return data ? `${data.pages} p.` : '';
         }, totalUniquePagesRead.toLocaleString());
+
+        this.renderReadingChallenge(content, booksByYear);
     }
 
     private renderStatCard(container: HTMLElement, label: string, value: string, files: TFile[], subtextProvider?: (file: TFile) => string, subValue?: string) {
@@ -174,5 +201,79 @@ export class StatsView extends ItemView {
             listEl.toggleClass('is-hidden', !isHidden);
             card.toggleClass('is-open', isHidden);
         };
+    }
+
+    private renderReadingChallenge(container: HTMLElement, booksByYear: Record<string, TFile[]>) {
+        const challengeContainer = container.createEl('div', { cls: 'librarian-challenge-container' });
+        challengeContainer.createEl('div', { text: 'Reading Challenge', cls: 'librarian-view-header', attr: { style: 'margin-top: 1.5rem;' } });
+
+        const currentYear = new Date().getFullYear().toString();
+        const thisYearBooks = this.sortBooksByMostRecentlyRead(booksByYear[currentYear] || []);
+        const goal = this.plugin.settings.readingGoal || 50;
+        
+        const progressContainer = challengeContainer.createEl('div', { cls: 'librarian-challenge-progress' });
+        progressContainer.createEl('div', { text: `${currentYear} Goal: ${thisYearBooks.length} / ${goal} books`, cls: 'librarian-challenge-text' });
+        
+        const progressBar = progressContainer.createEl('progress', { cls: 'librarian-progress-bar' });
+        progressBar.setAttribute('value', thisYearBooks.length.toString());
+        progressBar.setAttribute('max', goal.toString());
+
+        this.renderStatCard(challengeContainer, `Books read in ${currentYear}`, thisYearBooks.length.toString(), thisYearBooks);
+
+        const years = Object.keys(booksByYear).filter(y => y !== currentYear && y !== "Unknown").sort((a, b) => b.localeCompare(a));
+        if (years.length > 0) {
+            challengeContainer.createEl('div', { text: 'Previous Years', cls: 'librarian-view-header librarian-historical-header', attr: { style: 'margin-top: 1.5rem;' } });
+            for (const year of years) {
+                const yearBooks = this.sortBooksByMostRecentlyRead(booksByYear[year] || []);
+                if (yearBooks && yearBooks.length > 0) {
+                    this.renderStatCard(challengeContainer, `Books read in ${year}`, yearBooks.length.toString(), yearBooks);
+                }
+            }
+        }
+        
+        const unknownYearBooks = booksByYear["Unknown"];
+        if (unknownYearBooks && unknownYearBooks.length > 0) {
+            const sortedUnknown = this.sortBooksByMostRecentlyRead(unknownYearBooks);
+            this.renderStatCard(challengeContainer, `Books read in Unknown Year`, sortedUnknown.length.toString(), sortedUnknown);
+        }
+    }
+
+    private getLatestReadDate(file: TFile): string {
+        const cache = this.app.metadataCache.getFileCache(file);
+        const frontmatter = cache?.frontmatter;
+        if (!frontmatter) return "";
+
+        let latestDate = "";
+
+        if (frontmatter['readHistory'] && Array.isArray(frontmatter['readHistory'])) {
+            for (const session of frontmatter['readHistory']) {
+                if (session.end && session.end !== "DNF" && session.end > latestDate) {
+                    latestDate = session.end;
+                }
+            }
+        }
+
+        if (!latestDate) {
+            const dateStr = frontmatter['dateRead'] || frontmatter['dateAdded'];
+            if (typeof dateStr === 'string' && dateStr) {
+                latestDate = dateStr;
+            }
+        }
+
+        return latestDate;
+    }
+
+    private sortBooksByMostRecentlyRead(books: TFile[]): TFile[] {
+        // Create a copy to avoid mutating the original array
+        return [...books].sort((a, b) => {
+            const dateA = this.getLatestReadDate(a);
+            const dateB = this.getLatestReadDate(b);
+
+            if (!dateA && !dateB) return 0;
+            if (!dateA) return 1; // a goes to bottom
+            if (!dateB) return -1; // b goes to bottom
+
+            return dateB.localeCompare(dateA); // most recent on top
+        });
     }
 }
