@@ -10,6 +10,7 @@ Librarian transforms Obsidian into a sophisticated reading journal. It automates
 
 ### Metadata Management
 - **Open Library Integration**: Search and import book metadata including Title, Author, ISBN, Page Count, and Cover URLs.
+- **Custom Book Entry**: Manually enter book details for titles not found in Open Library.
 - **Automated Note Generation**: Create standardized book notes based on customizable templates.
 - **Custom Properties**: Support for user-defined YAML properties alongside core tracking fields.
 
@@ -22,7 +23,8 @@ Librarian transforms Obsidian into a sophisticated reading journal. It automates
 - **Bookshelves**: Group books into custom shelves (e.g., "Reference", "Philosophy", "2024 Queue").
 - **Dynamic Folder Organization**: Use placeholders like `{{author}}`, `{{year}}`, or `{{subject}}` in your default folder path to automatically sort new books into subfolders.
 - **Sidebar Views**: Dedicated views for browsing your library by shelf and analyzing reading statistics.
-- **Statistical Analysis**: Track total pages read, unique books completed, and drill down into specific date ranges.
+- **Statistical Analysis**: Track total pages read, unique books completed, and drill down into specific date ranges. Lists are automatically sorted by most recently read.
+- **Reading Challenge**: Set a personal yearly reading goal and track your progress in the Reading Stats view, complete with historical data from previous years.
 
 ### Quote & Annotation Support
 - **Contextual Quotes**: Quickly capture quotes with page numbers and tags.
@@ -136,14 +138,8 @@ Create a markdown file (e.g., `templates/book-template.md`) with the following c
 
 The following features are planned for future releases. Development will begin once the plugin is available in the Community Plugins directory.
 
-### Reading Challenge
-Set a personal reading goal for the year and track your progress toward it. The Reading Challenge view will show how many books you've finished so far this year, how you're pacing against your goal, and a historical breakdown of books read in each previous year - similar in style to the Bookshelves view.
-
 ### Goodreads Import / Export
-Migrate your existing reading history into Librarian from a Goodreads CSV export, or export your library back out. Goodreads data does not map cleanly to Open Library metadata, so this feature will *hopefully*include careful handling of edge cases such as missing ISBNs, mismatched titles, and multi-read histories.
-
-### Custom Book Entry
-Can't find a book in Open Library? No problem. A dedicated form will let you manually enter any book's details - title, author, page count, cover image, and more - so that every book in your library can be tracked, regardless of whether it exists in an external database.
+Migrate your existing reading history into Librarian from a Goodreads CSV export, or export your library back out. Goodreads data does not map cleanly to Open Library metadata, so this feature will *hopefully* include careful handling of edge cases such as missing ISBNs, mismatched titles, and multi-read histories.
 
 ---
 
